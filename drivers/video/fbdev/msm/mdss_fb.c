@@ -42,7 +42,7 @@
 #include <uapi/linux/sched/types.h>
 #ifdef CONFIG_MACH_MI
 #include <linux/interrupt.h>
-#include <linux/wakelock.h>
+#include <linux/pm_wakeup.h>
 #endif
 
 #include "mdss_fb.h"
@@ -2949,8 +2949,8 @@ static int mdss_fb_register(struct msm_fb_data_type *mfd)
 	if (panel_info->is_prim_panel) {
 		prim_fbi = fbi;
 		atomic_set(&prim_panel_is_on, false);
-		INIT_DELAYED_WORK(&prim_panel_work, prim_panel_off_delayed_work);
-		wake_lock_init(&prim_panel_wakelock, WAKE_LOCK_SUSPEND, "prim_panel_wakelock");
+		INIT_DELAYED_WORK(&mfd->prim_panel_work, prim_panel_off_delayed_work);
+		mfd->prim_panel_wakelock = wakeup_source_register(NULL, "prim_panel_wakelock");
 	}
 #endif
 
