@@ -550,7 +550,7 @@ static void __init mm_init(void)
 	pti_init();
 }
 
-#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_PLATINA)
+#if defined(CONFIG_MACH_LONGCHEER) || defined(CONFIG_MACH_XIAOMI_CLOVER) || defined(CONFIG_MACH_XIAOMI_PLATINA)
 int fpsensor = 1;
 bool is_poweroff_charge = false;
 #endif
