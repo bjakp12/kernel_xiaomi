@@ -1357,7 +1357,6 @@ static int adc_probe(struct platform_device *pdev)
 
 	adc->ipc_log0 = ipc_log_context_create(IPC_LOGPAGES,
 							adc_name, 0);
-
 	if (!adc->ipc_log0)
 		pr_err("%s : unable to create IPC Logging 0 for %s ADC\n",
 					__func__, node->parent->full_name);
