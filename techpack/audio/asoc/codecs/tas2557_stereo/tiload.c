@@ -1,34 +1,39 @@
 /*
- * Copyright (c) 2016 Texas Instruments Inc.
- * Copyright (C) 2018 XiaoMi, Inc.
- *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation; version 2.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- * File: tiload.c
- * Description: utility for TAS2557 Android in-system tuning
- */
+** =============================================================================
+** Copyright (c) 2016  Texas Instruments Inc.
+**
+** This program is free software; you can redistribute it and/or modify it under
+** the terms of the GNU General Public License as published by the Free Software
+** Foundation; version 2.
+**
+** This program is distributed in the hope that it will be useful, but WITHOUT
+** ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+** FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+**
+** File:
+**     tiload.c
+**
+** Description:
+**     utility for TAS2557 Android in-system tuning
+**
+** =============================================================================
+*/
 
+#include <linux/cdev.h>
+#include <linux/delay.h>
+#include <linux/device.h>
+#include <linux/fs.h>
+#include <linux/i2c.h>
+#include <linux/init.h>
+#include <linux/io.h>
+#include <linux/kdev_t.h>
+#include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
-#include <linux/init.h>
-#include <linux/kernel.h>
-#include <linux/fs.h>
-#include <linux/types.h>
-#include <linux/kdev_t.h>
-#include <linux/cdev.h>
-#include <linux/device.h>
-#include <linux/io.h>
-#include <linux/delay.h>
-#include <linux/i2c.h>
 #include <linux/platform_device.h>
-#include <linux/uaccess.h>
 #include <linux/slab.h>
+#include <linux/types.h>
+#include <linux/uaccess.h>
 
 #include "tiload.h"
 
@@ -41,10 +46,13 @@ static unsigned int magic_num;
 
 static char gPage;
 static char gBook;
+/******************************** Debug section *****************************/
 
-/*
+/*----------------------------------------------------------------------------
  * Function : tiload_open
+ *
  * Purpose  : open method for tiload programming interface
+ *----------------------------------------------------------------------------
  */
 static int tiload_open(struct inode *in, struct file *filp)
 {
@@ -53,7 +61,8 @@ static int tiload_open(struct inode *in, struct file *filp)
 	dev_info(pTAS2557->dev, "%s\n", __func__);
 
 	if (tiload_opened) {
-		dev_info(pTAS2557->dev, "%s device is already opened\n", "tiload");
+		dev_info(pTAS2557->dev, "%s device is already opened\n",
+			 "tiload");
 		return -EINVAL;
 	}
 	filp->private_data = (void *)pTAS2557;
@@ -61,13 +70,16 @@ static int tiload_open(struct inode *in, struct file *filp)
 	return 0;
 }
 
-/*
+/*----------------------------------------------------------------------------
  * Function : tiload_release
+ *
  * Purpose  : close method for tiload programming interface
+ *----------------------------------------------------------------------------
  */
 static int tiload_release(struct inode *in, struct file *filp)
 {
-	struct tas2557_priv *pTAS2557 = (struct tas2557_priv *)filp->private_data;
+	struct tas2557_priv *pTAS2557 =
+		(struct tas2557_priv *)filp->private_data;
 
 	dev_info(pTAS2557->dev, "%s\n", __func__);
 	filp->private_data = NULL;
@@ -76,14 +88,17 @@ static int tiload_release(struct inode *in, struct file *filp)
 }
 
 #define MAX_LENGTH 128
-/*
+/*----------------------------------------------------------------------------
  * Function : tiload_read
+ *
  * Purpose  : read from codec
+ *----------------------------------------------------------------------------
  */
-static ssize_t tiload_read(struct file *filp, char __user *buf,
-	size_t count, loff_t *offset)
+static ssize_t tiload_read(struct file *filp, char __user *buf, size_t count,
+			   loff_t *offset)
 {
-	struct tas2557_priv *pTAS2557 = (struct tas2557_priv *)filp->private_data;
+	struct tas2557_priv *pTAS2557 =
+		(struct tas2557_priv *)filp->private_data;
 	char *rd_data;
 	unsigned int nCompositeRegister = 0, Value = 0;
 	char reg_addr;
@@ -92,7 +107,8 @@ static ssize_t tiload_read(struct file *filp, char __user *buf,
 
 	dev_info(pTAS2557->dev, "%s\n", __func__);
 	if (count > MAX_LENGTH) {
-		dev_err(pTAS2557->dev, "Max %d bytes can be read\n", MAX_LENGTH);
+		dev_err(pTAS2557->dev, "Max %d bytes can be read\n",
+			MAX_LENGTH);
 		return -EINVAL;
 	}
 
@@ -107,7 +123,7 @@ static ssize_t tiload_read(struct file *filp, char __user *buf,
 
 	rd_data = kmalloc(MAX_LENGTH + 1, GFP_KERNEL | GFP_DMA);
 
-	if(rd_data == NULL) {
+	if (rd_data == NULL) {
 		dev_err(pTAS2557->dev, "kmalloc fail \n");
 		return -EINVAL;
 	}
@@ -115,23 +131,22 @@ static ssize_t tiload_read(struct file *filp, char __user *buf,
 	nCompositeRegister = BPR_REG(gBook, gPage, reg_addr);
 	if (count == 1) {
 		ret = pTAS2557->read(pTAS2557, pTAS2557->mnCurrentChannel,
-				0x80000000 | nCompositeRegister, &Value);
+				     0x80000000 | nCompositeRegister, &Value);
 		if (ret >= 0)
-			rd_data[0] = (char) Value;
+			rd_data[0] = (char)Value;
 	} else if (count > 1) {
 		ret = pTAS2557->bulk_read(pTAS2557, pTAS2557->mnCurrentChannel,
-					0x80000000 | nCompositeRegister, rd_data, size);
+					  0x80000000 | nCompositeRegister,
+					  rd_data, size);
 	}
 	if (ret < 0)
-		dev_err(pTAS2557->dev, "%s, %d, ret=%d, count=%zu error happen!\n",
-			__func__, __LINE__, ret, count);
+		dev_err(pTAS2557->dev,
+			"%s, %d, ret=%d, count=%zu error happen!\n", __func__,
+			__LINE__, ret, count);
 
-#ifdef DEBUG
-	dev_info(pTAS2557->dev, "read size = %d, reg_addr= %x , count = %d\n",
-		(int) size, reg_addr, (int) count);
-#endif
 	if (size != count)
-		dev_err(pTAS2557->dev, "read %d registers from the codec\n", (int) size);
+		dev_err(pTAS2557->dev, "read %d registers from the codec\n",
+			(int)size);
 
 	if (copy_to_user(buf, rd_data, size) != 0) {
 		dev_err(pTAS2557->dev, "copy_to_user failed\n");
@@ -144,13 +159,17 @@ static ssize_t tiload_read(struct file *filp, char __user *buf,
 }
 
 /*
+ *----------------------------------------------------------------------------
  * Function : tiload_write
+ *
  * Purpose  : write to codec
+ *----------------------------------------------------------------------------
  */
 static ssize_t tiload_write(struct file *filp, const char __user *buf,
-	size_t count, loff_t *offset)
+			    size_t count, loff_t *offset)
 {
-	struct tas2557_priv *pTAS2557 = (struct tas2557_priv *)filp->private_data;
+	struct tas2557_priv *pTAS2557 =
+		(struct tas2557_priv *)filp->private_data;
 	char *wr_data;
 	char *pData;
 	size_t size;
@@ -160,12 +179,13 @@ static ssize_t tiload_write(struct file *filp, const char __user *buf,
 	dev_info(pTAS2557->dev, "%s\n", __func__);
 
 	if (count > MAX_LENGTH) {
-		dev_err(pTAS2557->dev, "Max %d bytes can be read\n", MAX_LENGTH);
+		dev_err(pTAS2557->dev, "Max %d bytes can be read\n",
+			MAX_LENGTH);
 		return -EINVAL;
 	}
 
 	wr_data = kmalloc(MAX_LENGTH + 1, GFP_KERNEL | GFP_DMA);
-	if(wr_data == NULL) {
+	if (wr_data == NULL) {
 		dev_err(pTAS2557->dev, "kmalloc fail \n");
 		return -EINVAL;
 	}
@@ -174,13 +194,11 @@ static ssize_t tiload_write(struct file *filp, const char __user *buf,
 	/* copy buffer from user space  */
 	size = copy_from_user(wr_data, buf, count);
 	if (size != 0) {
-		dev_err(pTAS2557->dev, "copy_from_user failure %d\n", (int) size);
+		dev_err(pTAS2557->dev, "copy_from_user failure %d\n",
+			(int)size);
 		kfree(wr_data);
 		return -EINVAL;
 	}
-#ifdef DEBUG
-	dev_info(pTAS2557->dev, "write size = %zu\n", count);
-#endif
 	nRegister = wr_data[0];
 	size = count;
 	if ((nRegister == 127) && (gPage == 0)) {
@@ -198,15 +216,19 @@ static ssize_t tiload_write(struct file *filp, const char __user *buf,
 	nCompositeRegister = BPR_REG(gBook, gPage, nRegister);
 	if (count == 2) {
 		ret = pTAS2557->write(pTAS2557, pTAS2557->mnCurrentChannel,
-				0x80000000 | nCompositeRegister, pData[1]);
+				      0x80000000 | nCompositeRegister,
+				      pData[1]);
 	} else if (count > 2) {
 		ret = pTAS2557->bulk_write(pTAS2557, pTAS2557->mnCurrentChannel,
-				0x80000000 | nCompositeRegister, &pData[1], count - 1);
+					   0x80000000 | nCompositeRegister,
+					   &pData[1], count - 1);
 	}
 
 	if (ret < 0)
-		dev_err(pTAS2557->dev, "%s, %d, ret=%d, count=%zu, ERROR Happen\n", __func__,
+		dev_err(pTAS2557->dev,
+			"%s, %d, ret=%d, count=%zu, ERROR Happen\n", __func__,
 			__LINE__, ret, count);
+
 	kfree(wr_data);
 	return size;
 }
@@ -214,16 +236,19 @@ static ssize_t tiload_write(struct file *filp, const char __user *buf,
 static void tiload_route_IO(struct tas2557_priv *pTAS2557, unsigned int bLock)
 {
 	if (bLock)
-		pTAS2557->write(pTAS2557, pTAS2557->mnCurrentChannel, 0xAFFEAFFE, 0xBABEBABE);
+		pTAS2557->write(pTAS2557, pTAS2557->mnCurrentChannel,
+				0xAFFEAFFE, 0xBABEBABE);
 	else
-		pTAS2557->write(pTAS2557, pTAS2557->mnCurrentChannel, 0xBABEBABE, 0xAFFEAFFE);
+		pTAS2557->write(pTAS2557, pTAS2557->mnCurrentChannel,
+				0xBABEBABE, 0xAFFEAFFE);
 }
 
 static long tiload_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
-	struct tas2557_priv *pTAS2557 = (struct tas2557_priv *)filp->private_data;
+	struct tas2557_priv *pTAS2557 =
+		(struct tas2557_priv *)filp->private_data;
 	long num = 0;
-	void __user *argp = (void __user *) arg;
+	void __user *argp = (void __user *)arg;
 	unsigned char addr = 0;
 	int val;
 	struct BPR bpr;
@@ -247,16 +272,20 @@ static long tiload_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		break;
 	case TILOAD_IOCTL_SET_CHL:
 		num = copy_from_user(&val, argp, sizeof(int));
-		addr = (unsigned char)(val>>1);
+		addr = (unsigned char)(val >> 1);
 		if (addr == pTAS2557->mnLAddr) {
-			dev_info(pTAS2557->dev, "TILOAD_IOCTL_SET_CHL left=0x%x\n", cmd);
+			dev_info(pTAS2557->dev,
+				 "TILOAD_IOCTL_SET_CHL left=0x%x\n", cmd);
 			pTAS2557->mnCurrentChannel = channel_left;
 		} else if (addr == pTAS2557->mnRAddr) {
-			dev_info(pTAS2557->dev, "TILOAD_IOCTL_SET_CHL right=0x%x\n", cmd);
+			dev_info(pTAS2557->dev,
+				 "TILOAD_IOCTL_SET_CHL right=0x%x\n", cmd);
 			pTAS2557->mnCurrentChannel = channel_right;
 		} else {
-			dev_err(pTAS2557->dev, "TILOAD_IOCTL_SET_CHL error L(0x%x) R(0x%x) 0x%x, cmd=0x%x\n",
-				pTAS2557->mnLAddr, pTAS2557->mnRAddr, addr, cmd);
+			dev_err(pTAS2557->dev,
+				"TILOAD_IOCTL_SET_CHL error L(0x%x) R(0x%x) 0x%x, cmd=0x%x\n",
+				pTAS2557->mnLAddr, pTAS2557->mnRAddr, addr,
+				cmd);
 		}
 		break;
 	case TILOAD_IOCTL_SET_CONFIG:
@@ -265,71 +294,80 @@ static long tiload_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		pTAS2557->set_config(pTAS2557, val);
 		break;
 	case TILOAD_IOCTL_SET_CALIBRATION:
-		dev_info(pTAS2557->dev, "TILOAD_IOCTL_SET_CALIBRATION=0x%x\n", cmd);
+		dev_info(pTAS2557->dev, "TILOAD_IOCTL_SET_CALIBRATION=0x%x\n",
+			 cmd);
 		num = copy_from_user(&val, argp, sizeof(val));
 		pTAS2557->set_calibration(pTAS2557, val);
 		break;
 	default:
-		dev_info(pTAS2557->dev, "%s, unsupport cmd=0x%x\n", __func__, cmd);
+		dev_info(pTAS2557->dev, "%s, unsupport cmd=0x%x\n", __func__,
+			 cmd);
 		break;
 	}
 	return num;
 }
 
 #ifdef CONFIG_COMPAT
-static long tiload_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
+static long tiload_compat_ioctl(struct file *filp, unsigned int cmd,
+				unsigned long arg)
 {
-	struct tas2557_priv *pTAS2557 = (struct tas2557_priv *)filp->private_data;
+	struct tas2557_priv *pTAS2557 =
+		(struct tas2557_priv *)filp->private_data;
 	long nResult = 0;
 
 	switch (cmd) {
 	case TILOAD_COMPAT_IOMAGICNUM_GET:
-		dev_info(pTAS2557->dev, "%s, TILOAD_COMPAT_IOMAGICNUM_GET=0x%x\n",
-			__func__, cmd);
+		dev_info(pTAS2557->dev,
+			 "%s, TILOAD_COMPAT_IOMAGICNUM_GET=0x%x\n", __func__,
+			 cmd);
 		nResult = tiload_ioctl(filp, TILOAD_IOMAGICNUM_GET,
-			(unsigned long) compat_ptr(arg));
+				       (unsigned long)compat_ptr(arg));
 		break;
 
 	case TILOAD_COMPAT_IOMAGICNUM_SET:
-		dev_info(pTAS2557->dev, "%s, TILOAD_COMPAT_IOMAGICNUM_SET=0x%x\n",
-			__func__, cmd);
+		dev_info(pTAS2557->dev,
+			 "%s, TILOAD_COMPAT_IOMAGICNUM_SET=0x%x\n", __func__,
+			 cmd);
 		nResult = tiload_ioctl(filp, TILOAD_IOMAGICNUM_SET,
-			(unsigned long) compat_ptr(arg));
+				       (unsigned long)compat_ptr(arg));
 		break;
 
 	case TILOAD_COMPAT_BPR_READ:
 		dev_info(pTAS2557->dev, "%s, TILOAD_COMPAT_BPR_READ=0x%x\n",
-			__func__, cmd);
+			 __func__, cmd);
 		nResult = tiload_ioctl(filp, TILOAD_BPR_READ,
-			(unsigned long) compat_ptr(arg));
+				       (unsigned long)compat_ptr(arg));
 		break;
 
 	case TILOAD_COMPAT_BPR_WRITE:
 		dev_info(pTAS2557->dev, "%s, TILOAD_COMPAT_BPR_WRITE=0x%x\n",
-			__func__, cmd);
+			 __func__, cmd);
 		nResult = tiload_ioctl(filp, TILOAD_BPR_WRITE,
-			(unsigned long) compat_ptr(arg));
+				       (unsigned long)compat_ptr(arg));
 		break;
 
 	case TILOAD_COMPAT_IOCTL_SET_CHL:
-		dev_info(pTAS2557->dev, "%s, TILOAD_COMPAT_IOCTL_SET_CHL=0x%x\n",
-			__func__, cmd);
+		dev_info(pTAS2557->dev,
+			 "%s, TILOAD_COMPAT_IOCTL_SET_CHL=0x%x\n", __func__,
+			 cmd);
 		nResult = tiload_ioctl(filp, TILOAD_IOCTL_SET_CHL,
-			(unsigned long) compat_ptr(arg));
+				       (unsigned long)compat_ptr(arg));
 		break;
 
 	case TILOAD_COMPAT_IOCTL_SET_CONFIG:
-		dev_info(pTAS2557->dev, "%s, TILOAD_COMPAT_IOCTL_SET_CONFIG=0x%x\n",
-			__func__, cmd);
+		dev_info(pTAS2557->dev,
+			 "%s, TILOAD_COMPAT_IOCTL_SET_CONFIG=0x%x\n", __func__,
+			 cmd);
 		nResult = tiload_ioctl(filp, TILOAD_IOCTL_SET_CONFIG,
-			(unsigned long) compat_ptr(arg));
+				       (unsigned long)compat_ptr(arg));
 		break;
 
 	case TILOAD_COMPAT_IOCTL_SET_CALIBRATION:
-		dev_info(pTAS2557->dev, "%s, TILOAD_COMPAT_IOCTL_SET_CALIBRATION=0x%x\n",
-			__func__, cmd);
+		dev_info(pTAS2557->dev,
+			 "%s, TILOAD_COMPAT_IOCTL_SET_CALIBRATION=0x%x\n",
+			 __func__, cmd);
 		nResult = tiload_ioctl(filp, TILOAD_IOCTL_SET_CALIBRATION,
-			(unsigned long) compat_ptr(arg));
+				       (unsigned long)compat_ptr(arg));
 		break;
 
 	default:
@@ -342,7 +380,7 @@ static long tiload_compat_ioctl(struct file *filp, unsigned int cmd, unsigned lo
 }
 #endif
 
-/* File operations structure for tiload */
+/*********** File operations structure for tiload *************/
 static const struct file_operations tiload_fops = {
 	.owner = THIS_MODULE,
 	.open = tiload_open,
@@ -355,9 +393,11 @@ static const struct file_operations tiload_fops = {
 #endif
 };
 
-/*
+/*----------------------------------------------------------------------------
  * Function : tiload_driver_init
+ *
  * Purpose  : Register a char driver for dynamic tiload programming
+ *----------------------------------------------------------------------------
  */
 int tiload_driver_init(struct tas2557_priv *pTAS2557)
 {
@@ -370,7 +410,8 @@ int tiload_driver_init(struct tas2557_priv *pTAS2557)
 
 	result = alloc_chrdev_region(&dev, 0, 1, DEVICE_NAME);
 	if (result < 0) {
-		dev_err(pTAS2557->dev, "cannot allocate major number %d\n", tiload_major);
+		dev_err(pTAS2557->dev, "cannot allocate major number %d\n",
+			tiload_major);
 		return result;
 	}
 	tiload_class = class_create(THIS_MODULE, DEVICE_NAME);
@@ -391,7 +432,8 @@ int tiload_driver_init(struct tas2557_priv *pTAS2557)
 		tiload_cdev = NULL;
 		return 1;
 	}
-	dev_info(pTAS2557->dev, "Registered TiLoad driver, Major number: %d\n", tiload_major);
+	dev_info(pTAS2557->dev, "Registered TiLoad driver, Major number: %d\n",
+		 tiload_major);
 	/* class_device_create(tiload_class, NULL, dev, NULL, DEVICE_NAME, 0); */
 	return 0;
 }

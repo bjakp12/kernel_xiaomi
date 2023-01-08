@@ -46,9 +46,9 @@ UAPI_INC :=	-I$(AUDIO_ROOT)/include/$(UAPI_DIR)
 COMMON_DIR :=	include
 COMMON_INC :=	-I$(AUDIO_ROOT)/$(COMMON_DIR)
 
-############ TAS2557 ############
+############ TAS2557 Stereo ############
 
-# for TAS2557 Codec
+# for TAS2557 Stereo Codec
 ifdef CONFIG_SND_SOC_TAS2557_STEREO
 	TAS2557_OBJS += tas2557-core.o
 	TAS2557_OBJS += tas2557-regmap.o
