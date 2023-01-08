@@ -1,51 +1,55 @@
 /*
- * Copyright (c) 2016 Texas Instruments Inc.
- * Copyright (C) 2018 XiaoMi, Inc.
- *
- * This program is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License as published by the Free Software
- * Foundation; version 2.
- *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- * File: tas2557-codec.c
- * Description: ALSA SoC driver for Texas Instruments TAS2557 High Performance 4W Smart Amplifier
- */
+** =============================================================================
+** Copyright (c) 2016  Texas Instruments Inc.
+**
+** This program is free software; you can redistribute it and/or modify it under
+** the terms of the GNU General Public License as published by the Free Software
+** Foundation; version 2.
+**
+** This program is distributed in the hope that it will be useful, but WITHOUT
+** ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+** FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+**
+** File:
+**     tas2557-codec.c
+**
+** Description:
+**     ALSA SoC driver for Texas Instruments TAS2557 High Performance 4W Smart Amplifier
+**
+** =============================================================================
+*/
 
 #ifdef CONFIG_TAS2557_CODEC_STEREO
 
+#include <linux/delay.h>
+#include <linux/fcntl.h>
+#include <linux/firmware.h>
+#include <linux/gpio.h>
+#include <linux/i2c.h>
+#include <linux/init.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
-#include <linux/init.h>
-#include <linux/delay.h>
-#include <linux/pm.h>
-#include <linux/i2c.h>
-#include <linux/gpio.h>
-#include <linux/regulator/consumer.h>
-#include <linux/firmware.h>
-#include <linux/regmap.h>
 #include <linux/of.h>
 #include <linux/of_gpio.h>
+#include <linux/pm.h>
+#include <linux/regmap.h>
+#include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 #include <linux/syscalls.h>
-#include <linux/fcntl.h>
 #include <linux/uaccess.h>
 #include <sound/core.h>
+#include <sound/initval.h>
 #include <sound/pcm.h>
 #include <sound/pcm_params.h>
 #include <sound/soc.h>
-#include <sound/initval.h>
 #include <sound/tlv.h>
 
-#include "tas2557-core.h"
 #include "tas2557-codec.h"
+#include "tas2557-core.h"
 
 #define KCONTROL_CODEC
 
-static unsigned int tas2557_codec_read(struct snd_soc_component *pCodec,
-	unsigned int nRegister)
+static unsigned int tas2557_codec_read(struct snd_soc_component *pCodec, unsigned int nRegister)
 {
 	struct tas2557_priv *pTAS2557 = snd_soc_component_get_drvdata(pCodec);
 	int ret = 0;
@@ -53,8 +57,8 @@ static unsigned int tas2557_codec_read(struct snd_soc_component *pCodec,
 
 	mutex_lock(&pTAS2557->codec_lock);
 
-	ret = pTAS2557->read(pTAS2557,
-		pTAS2557->mnCurrentChannel, nRegister, &Value);
+	ret = pTAS2557->read(pTAS2557, pTAS2557->mnCurrentChannel, nRegister,
+			     &Value);
 	if (ret < 0)
 		dev_err(pTAS2557->dev, "%s, %d, ERROR happen=%d\n", __func__,
 			__LINE__, ret);
@@ -66,15 +70,15 @@ static unsigned int tas2557_codec_read(struct snd_soc_component *pCodec,
 }
 
 static int tas2557_codec_write(struct snd_soc_component *pCodec, unsigned int nRegister,
-	unsigned int nValue)
+							   unsigned int nValue)
 {
 	struct tas2557_priv *pTAS2557 = snd_soc_component_get_drvdata(pCodec);
 	int ret = 0;
 
 	mutex_lock(&pTAS2557->codec_lock);
 
-	ret = pTAS2557->write(pTAS2557,
-		pTAS2557->mnCurrentChannel, nRegister, nValue);
+	ret = pTAS2557->write(pTAS2557, pTAS2557->mnCurrentChannel, nRegister,
+			      nValue);
 
 	mutex_unlock(&pTAS2557->codec_lock);
 	return ret;
@@ -109,9 +113,12 @@ static int tas2557_codec_resume(struct snd_soc_component *pCodec)
 }
 
 static const struct snd_soc_dapm_widget tas2557_dapm_widgets[] = {
-	SND_SOC_DAPM_AIF_IN("Stereo ASI1", "Stereo ASI1 Playback", 0, SND_SOC_NOPM, 0, 0),
-	SND_SOC_DAPM_AIF_IN("Stereo ASI2", "Stereo ASI2 Playback", 0, SND_SOC_NOPM, 0, 0),
-	SND_SOC_DAPM_AIF_IN("Stereo ASIM", "Stereo ASIM Playback", 0, SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_IN("Stereo ASI1", "Stereo ASI1 Playback", 0,
+			    SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_IN("Stereo ASI2", "Stereo ASI2 Playback", 0,
+			    SND_SOC_NOPM, 0, 0),
+	SND_SOC_DAPM_AIF_IN("Stereo ASIM", "Stereo ASIM Playback", 0,
+			    SND_SOC_NOPM, 0, 0),
 	SND_SOC_DAPM_DAC("Stereo DAC", NULL, SND_SOC_NOPM, 0, 0),
 
 	SND_SOC_DAPM_OUT_DRV("Stereo ClassD", SND_SOC_NOPM, 0, 0, NULL, 0),
@@ -119,23 +126,21 @@ static const struct snd_soc_dapm_widget tas2557_dapm_widgets[] = {
 	SND_SOC_DAPM_SUPPLY("Stereo PLL", SND_SOC_NOPM, 0, 0, NULL, 0),
 	SND_SOC_DAPM_SUPPLY("Stereo NDivider", SND_SOC_NOPM, 0, 0, NULL, 0),
 
-	SND_SOC_DAPM_OUTPUT("Stereo OUT"),
-	SND_SOC_DAPM_INPUT("Stereo IN")
+	SND_SOC_DAPM_OUTPUT("Stereo OUT")
 };
 
 static const struct snd_soc_dapm_route tas2557_audio_map[] = {
-	{"Stereo DAC", NULL, "Stereo ASI1"},
-	{"Stereo DAC", NULL, "Stereo ASI2"},
-	{"Stereo DAC", NULL, "Stereo ASIM"},
-	{"Stereo ClassD", NULL, "Stereo DAC"},
-	{"Stereo OUT", NULL, "Stereo ClassD"},
-	{"Stereo DAC", NULL, "Stereo PLL"},
-	{"Stereo DAC", NULL, "Stereo NDivider"},
-	{"Stereo ASI1 Capture", NULL, "IN"},
+	{ "Stereo DAC", NULL, "Stereo ASI1" },
+	{ "Stereo DAC", NULL, "Stereo ASI2" },
+	{ "Stereo DAC", NULL, "Stereo ASIM" },
+	{ "Stereo ClassD", NULL, "Stereo DAC" },
+	{ "Stereo OUT", NULL, "Stereo ClassD" },
+	{ "Stereo DAC", NULL, "Stereo PLL" },
+	{ "Stereo DAC", NULL, "Stereo NDivider" },
 };
 
 static int tas2557_startup(struct snd_pcm_substream *substream,
-	struct snd_soc_dai *dai)
+			   struct snd_soc_dai *dai)
 {
 	struct snd_soc_component *component = dai->component;
 	struct tas2557_priv *pTAS2557 = snd_soc_component_get_drvdata(component);
@@ -145,7 +150,7 @@ static int tas2557_startup(struct snd_pcm_substream *substream,
 }
 
 static void tas2557_shutdown(struct snd_pcm_substream *substream,
-	struct snd_soc_dai *dai)
+			     struct snd_soc_dai *dai)
 {
 	struct snd_soc_component *component = dai->component;
 	struct tas2557_priv *pTAS2557 = snd_soc_component_get_drvdata(component);
@@ -167,19 +172,21 @@ static int tas2557_mute(struct snd_soc_dai *dai, int mute)
 	return 0;
 }
 
-static int tas2557_set_dai_sysclk(struct snd_soc_dai *pDAI,
-	int nClkID, unsigned int nFreqency, int nDir)
+static int tas2557_set_dai_sysclk(struct snd_soc_dai *pDAI, int nClkID,
+				  unsigned int nFreqency, int nDir)
 {
 	struct snd_soc_component *pCodec = pDAI->component;
 	struct tas2557_priv *pTAS2557 = snd_soc_component_get_drvdata(pCodec);
 
-	dev_dbg(pTAS2557->dev, "tas2557_set_dai_sysclk: freq = %u\n", nFreqency);
+	dev_dbg(pTAS2557->dev, "tas2557_set_dai_sysclk: freq = %u\n",
+		nFreqency);
 
 	return 0;
 }
 
 static int tas2557_hw_params(struct snd_pcm_substream *pSubstream,
-	struct snd_pcm_hw_params *pParams, struct snd_soc_dai *pDAI)
+			     struct snd_pcm_hw_params *pParams,
+			     struct snd_soc_dai *pDAI)
 {
 	struct snd_soc_component *pCodec = pDAI->component;
 	struct tas2557_priv *pTAS2557 = snd_soc_component_get_drvdata(pCodec);
@@ -205,7 +212,7 @@ static int tas2557_set_dai_fmt(struct snd_soc_dai *pDAI, unsigned int nFormat)
 }
 
 static int tas2557_prepare(struct snd_pcm_substream *pSubstream,
-	struct snd_soc_dai *pDAI)
+			   struct snd_soc_dai *pDAI)
 {
 	struct snd_soc_component *component = pDAI->component;
 	struct tas2557_priv *pTAS2557 = snd_soc_component_get_drvdata(component);
@@ -214,8 +221,7 @@ static int tas2557_prepare(struct snd_pcm_substream *pSubstream,
 	return 0;
 }
 
-static int tas2557_set_bias_level(struct snd_soc_component *pCodec,
-	enum snd_soc_bias_level eLevel)
+static int tas2557_set_bias_level(struct snd_soc_component *pCodec, enum snd_soc_bias_level eLevel)
 {
 	struct tas2557_priv *pTAS2557 = snd_soc_component_get_drvdata(pCodec);
 
@@ -233,13 +239,11 @@ static int tas2557_codec_probe(struct snd_soc_component *pCodec)
 
 static void tas2557_codec_remove(struct snd_soc_component *pCodec)
 {
-	struct tas2557_priv *pTAS2557 = snd_soc_component_get_drvdata(pCodec);
-
-	dev_dbg(pTAS2557->dev, "%s\n", __func__);
+	struct tas2557_priv* pTAS2557 = snd_soc_component_get_drvdata(pCodec);
 }
 
 static int tas2557_power_ctrl_get(struct snd_kcontrol *pKcontrol,
-	struct snd_ctl_elem_value *pValue)
+				  struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -259,7 +263,7 @@ static int tas2557_power_ctrl_get(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_power_ctrl_put(struct snd_kcontrol *pKcontrol,
-	struct snd_ctl_elem_value *pValue)
+				  struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -280,7 +284,7 @@ static int tas2557_power_ctrl_put(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_fs_get(struct snd_kcontrol *pKcontrol,
-	struct snd_ctl_elem_value *pValue)
+			  struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -293,7 +297,9 @@ static int tas2557_fs_get(struct snd_kcontrol *pKcontrol,
 	mutex_lock(&pTAS2557->codec_lock);
 
 	if (pTAS2557->mpFirmware->mnConfigurations)
-		nFS = pTAS2557->mpFirmware->mpConfigurations[pTAS2557->mnCurrentConfiguration].mnSamplingRate;
+		nFS = pTAS2557->mpFirmware
+			      ->mpConfigurations[pTAS2557->mnCurrentConfiguration]
+			      .mnSamplingRate;
 	pValue->value.integer.value[0] = nFS;
 	dev_dbg(pTAS2557->dev, "tas2557_fs_get = %d\n", nFS);
 
@@ -302,7 +308,7 @@ static int tas2557_fs_get(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_fs_put(struct snd_kcontrol *pKcontrol,
-	struct snd_ctl_elem_value *pValue)
+			  struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -323,7 +329,7 @@ static int tas2557_fs_put(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_DevA_Cali_get(struct snd_kcontrol *pKcontrol,
-	struct snd_ctl_elem_value *pValue)
+				 struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -345,7 +351,7 @@ static int tas2557_DevA_Cali_get(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_DevB_Cali_get(struct snd_kcontrol *pKcontrol,
-	struct snd_ctl_elem_value *pValue)
+				 struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -367,7 +373,7 @@ static int tas2557_DevB_Cali_get(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_program_get(struct snd_kcontrol *pKcontrol,
-	struct snd_ctl_elem_value *pValue)
+			       struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -387,7 +393,7 @@ static int tas2557_program_get(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_program_put(struct snd_kcontrol *pKcontrol,
-	struct snd_ctl_elem_value *pValue)
+			       struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -409,7 +415,7 @@ static int tas2557_program_put(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_configuration_get(struct snd_kcontrol *pKcontrol,
-	struct snd_ctl_elem_value *pValue)
+				     struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -429,7 +435,7 @@ static int tas2557_configuration_get(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_configuration_put(struct snd_kcontrol *pKcontrol,
-	struct snd_ctl_elem_value *pValue)
+				     struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -450,7 +456,7 @@ static int tas2557_configuration_put(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_calibration_get(struct snd_kcontrol *pKcontrol,
-	struct snd_ctl_elem_value *pValue)
+				   struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -462,16 +468,15 @@ static int tas2557_calibration_get(struct snd_kcontrol *pKcontrol,
 	mutex_lock(&pTAS2557->codec_lock);
 
 	pValue->value.integer.value[0] = pTAS2557->mnCurrentCalibration;
-	dev_info(pTAS2557->dev,
-		"tas2557_calibration_get = %d\n",
-		pTAS2557->mnCurrentCalibration);
+	dev_info(pTAS2557->dev, "tas2557_calibration_get = %d\n",
+		 pTAS2557->mnCurrentCalibration);
 
 	mutex_unlock(&pTAS2557->codec_lock);
 	return 0;
 }
 
 static int tas2557_calibration_put(struct snd_kcontrol *pKcontrol,
-	struct snd_ctl_elem_value *pValue)
+				   struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -491,7 +496,7 @@ static int tas2557_calibration_put(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_ldac_gain_get(struct snd_kcontrol *pKcontrol,
-	struct snd_ctl_elem_value *pValue)
+				 struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -514,7 +519,7 @@ static int tas2557_ldac_gain_get(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_ldac_gain_put(struct snd_kcontrol *pKcontrol,
-	struct snd_ctl_elem_value *pValue)
+				 struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -534,7 +539,7 @@ static int tas2557_ldac_gain_put(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_rdac_gain_get(struct snd_kcontrol *pKcontrol,
-	struct snd_ctl_elem_value *pValue)
+				 struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -558,7 +563,7 @@ static int tas2557_rdac_gain_get(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_rdac_gain_put(struct snd_kcontrol *pKcontrol,
-	struct snd_ctl_elem_value *pValue)
+				 struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -577,7 +582,7 @@ static int tas2557_rdac_gain_put(struct snd_kcontrol *pKcontrol,
 	return ret;
 }
 
-static const char * const chl_setup_text[] = {
+static const char *const chl_setup_text[] = {
 	"default",
 	"DevA-Mute-DevB-Mute",
 	"DevA-Left-DevB-Right",
@@ -589,7 +594,7 @@ static const struct soc_enum chl_setup_enum[] = {
 };
 
 static int tas2557_dsp_chl_setup_get(struct snd_kcontrol *pKcontrol,
-			struct snd_ctl_elem_value *pValue)
+				     struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -608,7 +613,7 @@ static int tas2557_dsp_chl_setup_get(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_dsp_chl_setup_put(struct snd_kcontrol *pKcontrol,
-			struct snd_ctl_elem_value *pValue)
+				     struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -626,7 +631,7 @@ static int tas2557_dsp_chl_setup_put(struct snd_kcontrol *pKcontrol,
 	return 0;
 }
 
-static const char * const vboost_ctl_text[] = {
+static const char *const vboost_ctl_text[] = {
 	"default",
 	"Device(s) AlwaysOn"
 };
@@ -636,7 +641,7 @@ static const struct soc_enum vboost_ctl_enum[] = {
 };
 
 static int tas2557_vboost_ctl_get(struct snd_kcontrol *pKcontrol,
-			struct snd_ctl_elem_value *pValue)
+				  struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -658,7 +663,7 @@ static int tas2557_vboost_ctl_get(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_vboost_ctl_put(struct snd_kcontrol *pKcontrol,
-			struct snd_ctl_elem_value *pValue)
+				  struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -676,7 +681,7 @@ static int tas2557_vboost_ctl_put(struct snd_kcontrol *pKcontrol,
 	return 0;
 }
 
-static const char * const vboost_volt_text[] = {
+static const char *const vboost_volt_text[] = {
 	"8.6V",
 	"8.1V",
 	"7.6V",
@@ -689,7 +694,7 @@ static const struct soc_enum vboost_volt_enum[] = {
 };
 
 static int tas2557_vboost_volt_get(struct snd_kcontrol *pKcontrol,
-			struct snd_ctl_elem_value *pValue)
+				   struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -701,31 +706,33 @@ static int tas2557_vboost_volt_get(struct snd_kcontrol *pKcontrol,
 
 	mutex_lock(&pTAS2557->codec_lock);
 
-	dev_dbg(pTAS2557->dev, "%s, VBoost volt %d\n", __func__, pTAS2557->mnVBoostVoltage);
+	dev_dbg(pTAS2557->dev, "%s, VBoost volt %d\n", __func__,
+		pTAS2557->mnVBoostVoltage);
 	switch (pTAS2557->mnVBoostVoltage) {
 	case TAS2557_VBST_8P5V:
 		nVBstVolt = 0;
-	break;
+		break;
 
 	case TAS2557_VBST_8P1V:
 		nVBstVolt = 1;
-	break;
+		break;
 
 	case TAS2557_VBST_7P6V:
 		nVBstVolt = 2;
-	break;
+		break;
 
 	case TAS2557_VBST_6P6V:
 		nVBstVolt = 3;
-	break;
+		break;
 
 	case TAS2557_VBST_5P6V:
 		nVBstVolt = 4;
-	break;
+		break;
 
 	default:
-		dev_err(pTAS2557->dev, "%s, error volt %d\n", __func__, pTAS2557->mnVBoostVoltage);
-	break;
+		dev_err(pTAS2557->dev, "%s, error volt %d\n", __func__,
+			pTAS2557->mnVBoostVoltage);
+		break;
 	}
 
 	pValue->value.integer.value[0] = nVBstVolt;
@@ -736,7 +743,7 @@ static int tas2557_vboost_volt_get(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_vboost_volt_put(struct snd_kcontrol *pKcontrol,
-			struct snd_ctl_elem_value *pValue)
+				   struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -752,40 +759,42 @@ static int tas2557_vboost_volt_put(struct snd_kcontrol *pKcontrol,
 	switch (vbstvolt) {
 	case 0:
 		pTAS2557->mnVBoostVoltage = TAS2557_VBST_8P5V;
-	break;
+		break;
 
 	case 1:
 		pTAS2557->mnVBoostVoltage = TAS2557_VBST_8P1V;
-	break;
+		break;
 
 	case 2:
 		pTAS2557->mnVBoostVoltage = TAS2557_VBST_7P6V;
-	break;
+		break;
 
 	case 3:
 		pTAS2557->mnVBoostVoltage = TAS2557_VBST_6P6V;
-	break;
+		break;
 
 	case 4:
 		pTAS2557->mnVBoostVoltage = TAS2557_VBST_5P6V;
-	break;
+		break;
 
 	default:
-		dev_err(pTAS2557->dev, "%s, error volt %d\n", __func__, vbstvolt);
-	break;
+		dev_err(pTAS2557->dev, "%s, error volt %d\n", __func__,
+			vbstvolt);
+		break;
 	}
 
 	mutex_unlock(&pTAS2557->codec_lock);
 	return 0;
 }
 
-static const char * const echoref_ctl_text[] = {"left channel", "right channel", "both channel"};
+static const char *const echoref_ctl_text[] = { "left channel", "right channel",
+						"both channel" };
 static const struct soc_enum echoref_ctl_enum[] = {
 	SOC_ENUM_SINGLE_EXT(ARRAY_SIZE(echoref_ctl_text), echoref_ctl_text),
 };
 
 static int tas2557_echoref_ctl_get(struct snd_kcontrol *pKcontrol,
-			struct snd_ctl_elem_value *pValue)
+				   struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -804,7 +813,7 @@ static int tas2557_echoref_ctl_get(struct snd_kcontrol *pKcontrol,
 }
 
 static int tas2557_echoref_ctl_put(struct snd_kcontrol *pKcontrol,
-			struct snd_ctl_elem_value *pValue)
+				   struct snd_ctl_elem_value *pValue)
 {
 #ifdef KCONTROL_CODEC
 	struct snd_soc_component *component = snd_soc_kcontrol_component(pKcontrol);
@@ -812,7 +821,8 @@ static int tas2557_echoref_ctl_put(struct snd_kcontrol *pKcontrol,
 	struct snd_soc_component *component = snd_kcontrol_chip(pKcontrol);
 #endif
 	struct tas2557_priv *pTAS2557 = snd_soc_component_get_drvdata(component);
-	int echoref = pValue->value.integer.value[0]&0x01;	/* only take care of left/right channel switch */
+	int echoref = pValue->value.integer.value[0] &
+		      0x01; /* only take care of left/right channel switch */
 
 	mutex_lock(&pTAS2557->codec_lock);
 
@@ -827,31 +837,31 @@ static int tas2557_echoref_ctl_put(struct snd_kcontrol *pKcontrol,
 
 static const struct snd_kcontrol_new tas2557_snd_controls[] = {
 	SOC_SINGLE_EXT("Stereo LDAC Playback Volume", SND_SOC_NOPM, 0, 0x0f, 0,
-		tas2557_ldac_gain_get, tas2557_ldac_gain_put),
+		       tas2557_ldac_gain_get, tas2557_ldac_gain_put),
 	SOC_SINGLE_EXT("Stereo RDAC Playback Volume", SND_SOC_NOPM, 0, 0x0f, 0,
-		tas2557_rdac_gain_get, tas2557_rdac_gain_put),
+		       tas2557_rdac_gain_get, tas2557_rdac_gain_put),
 	SOC_SINGLE_EXT("Stereo PowerCtrl", SND_SOC_NOPM, 0, 0x0001, 0,
-		tas2557_power_ctrl_get, tas2557_power_ctrl_put),
+		       tas2557_power_ctrl_get, tas2557_power_ctrl_put),
 	SOC_SINGLE_EXT("Stereo Program", SND_SOC_NOPM, 0, 0x00FF, 0,
-		tas2557_program_get, tas2557_program_put),
+		       tas2557_program_get, tas2557_program_put),
 	SOC_SINGLE_EXT("Stereo Configuration", SND_SOC_NOPM, 0, 0x00FF, 0,
-		tas2557_configuration_get, tas2557_configuration_put),
+		       tas2557_configuration_get, tas2557_configuration_put),
 	SOC_SINGLE_EXT("Stereo FS", SND_SOC_NOPM, 8000, 48000, 0,
-		tas2557_fs_get, tas2557_fs_put),
+		       tas2557_fs_get, tas2557_fs_put),
 	SOC_SINGLE_EXT("Get DevA Cali_Re", SND_SOC_NOPM, 0, 0x7f000000, 0,
-		tas2557_DevA_Cali_get, NULL),
+		       tas2557_DevA_Cali_get, NULL),
 	SOC_SINGLE_EXT("Get DevB Cali_Re", SND_SOC_NOPM, 0, 0x7f000000, 0,
-		tas2557_DevB_Cali_get, NULL),
+		       tas2557_DevB_Cali_get, NULL),
 	SOC_SINGLE_EXT("Stereo Calibration", SND_SOC_NOPM, 0, 0x00FF, 0,
-		tas2557_calibration_get, tas2557_calibration_put),
+		       tas2557_calibration_get, tas2557_calibration_put),
 	SOC_ENUM_EXT("Stereo DSPChl Setup", chl_setup_enum[0],
-		tas2557_dsp_chl_setup_get, tas2557_dsp_chl_setup_put),
-	SOC_ENUM_EXT("VBoost Ctrl", vboost_ctl_enum[0],
-		tas2557_vboost_ctl_get, tas2557_vboost_ctl_put),
+		     tas2557_dsp_chl_setup_get, tas2557_dsp_chl_setup_put),
+	SOC_ENUM_EXT("VBoost Ctrl", vboost_ctl_enum[0], tas2557_vboost_ctl_get,
+		     tas2557_vboost_ctl_put),
 	SOC_ENUM_EXT("VBoost Volt", vboost_volt_enum[0],
-		tas2557_vboost_volt_get, tas2557_vboost_volt_put),
+		     tas2557_vboost_volt_get, tas2557_vboost_volt_put),
 	SOC_ENUM_EXT("Stereo EchoRef Ctrl", echoref_ctl_enum[0],
-		tas2557_echoref_ctl_get, tas2557_echoref_ctl_put),
+		     tas2557_echoref_ctl_get, tas2557_echoref_ctl_put),
 };
 
 static struct snd_soc_component_driver soc_component_driver_tas2557 = {
@@ -880,21 +890,15 @@ static struct snd_soc_dai_ops tas2557_dai_ops = {
 	.set_fmt = tas2557_set_dai_fmt,
 };
 
-#define TAS2557_FORMATS (SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S20_3LE |\
-	SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32_LE)
+#define TAS2557_FORMATS                                                        \
+	(SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S20_3LE |                  \
+	 SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32_LE)
 static struct snd_soc_dai_driver tas2557_dai_driver[] = {
 	{
 		.name = "tas2557 Stereo ASI1",
 		.id = 0,
 		.playback = {
-				.stream_name = "Stereo ASI1 Playback",
-				.channels_min = 2,
-				.channels_max = 2,
-				.rates = SNDRV_PCM_RATE_8000_192000,
-				.formats = TAS2557_FORMATS,
-			},
-		.capture = {
-			.stream_name = "Stereo ASI1 Capture",
+			.stream_name = "Stereo ASI1 Playback",
 			.channels_min = 2,
 			.channels_max = 2,
 			.rates = SNDRV_PCM_RATE_8000_192000,
@@ -907,12 +911,12 @@ static struct snd_soc_dai_driver tas2557_dai_driver[] = {
 		.name = "tas2557 Stereo ASI2",
 		.id = 1,
 		.playback = {
-				.stream_name = "Stereo ASI2 Playback",
-				.channels_min = 2,
-				.channels_max = 2,
-				.rates = SNDRV_PCM_RATE_8000_192000,
-				.formats = TAS2557_FORMATS,
-			},
+			.stream_name = "Stereo ASI2 Playback",
+			.channels_min = 2,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_8000_192000,
+			.formats = TAS2557_FORMATS,
+		},
 		.ops = &tas2557_dai_ops,
 		.symmetric_rates = 1,
 	},
@@ -920,12 +924,12 @@ static struct snd_soc_dai_driver tas2557_dai_driver[] = {
 		.name = "tas2557 Stereo ASIM",
 		.id = 2,
 		.playback = {
-				.stream_name = "Stereo ASIM Playback",
-				.channels_min = 2,
-				.channels_max = 2,
-				.rates = SNDRV_PCM_RATE_8000_192000,
-				.formats = TAS2557_FORMATS,
-			},
+			.stream_name = "Stereo ASIM Playback",
+			.channels_min = 2,
+			.channels_max = 2,
+			.rates = SNDRV_PCM_RATE_8000_192000,
+			.formats = TAS2557_FORMATS,
+		},
 		.ops = &tas2557_dai_ops,
 		.symmetric_rates = 1,
 	},
@@ -936,9 +940,10 @@ int tas2557_register_codec(struct tas2557_priv *pTAS2557)
 	int nResult = 0;
 
 	dev_info(pTAS2557->dev, "%s, enter\n", __func__);
-	nResult = snd_soc_register_component(pTAS2557->dev,
-		&soc_component_driver_tas2557,
-		tas2557_dai_driver, ARRAY_SIZE(tas2557_dai_driver));
+	nResult =
+		snd_soc_register_component(pTAS2557->dev, &soc_component_driver_tas2557,
+				       tas2557_dai_driver,
+				       ARRAY_SIZE(tas2557_dai_driver));
 	return nResult;
 }
 
