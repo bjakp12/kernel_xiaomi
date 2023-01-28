@@ -12,5 +12,5 @@ config TOUCHSCREEN_FTS_D9_D9P
 
 config TOUCHSCREEN_FTS_DIRECTORY_D9_D9P
 	string "Focaltech ts directory name"
-	default "focaltech_touch"
-	depends on TOUCHSCREEN_FTS
+	default "focaltech_d9_d9p"
+	depends on TOUCHSCREEN_FTS_D9_D9P
