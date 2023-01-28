@@ -1,4 +1,5 @@
 /*
+ *
  * FocalTech fts TouchScreen driver.
  *
  * Copyright (c) 2010-2017, Focaltech Ltd. All rights reserved.
@@ -12,27 +13,36 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
+ *
  */
 
-/*
+/*****************************************************************************
+ *
  * File Name: focaltech_flash.c
+ *
  * Author: Focaltech Driver Team
+ *
  * Created: 2016-08-08
- */
+ *
+ * Abstract:
+ *
+ * Reference:
+ *
+ *****************************************************************************/
 
-/*
+/*****************************************************************************
  * 1.Included header files
- */
+ *****************************************************************************/
 #include "focaltech_core.h"
 #include "focaltech_flash.h"
 
-/*
+/*****************************************************************************
  * Static variables
- */
+ *****************************************************************************/
 
-/*
+/*****************************************************************************
  * Global variable or extern global variabls/functions
- */
+ *****************************************************************************/
 /* Upgrade FW/PRAMBOOT/LCD CFG */
 u8 fw_file[] = {
 #include FTS_UPGRADE_FW_FILE
@@ -51,10 +61,10 @@ u8 fw_file4[] = {
 };
 
 struct upgrade_fw fw_list[] = {
-	{FTS_CHIP_ID, FTS_VENDOR_ID, fw_file, sizeof(fw_file)},
-	{FTS_CHIP_ID, FTS_VENDOR_ID2, fw_file2, sizeof(fw_file2)},
-	{FTS_CHIP_ID2, FTS_VENDOR_ID3, fw_file3, sizeof(fw_file3)},
-	{FTS_CHIP_ID2, FTS_VENDOR_ID4, fw_file4, sizeof(fw_file4)},
+	{ FTS_CHIP_ID, FTS_VENDOR_ID, fw_file, sizeof(fw_file) },
+	{ FTS_CHIP_ID, FTS_VENDOR_ID2, fw_file2, sizeof(fw_file2) },
+	{ FTS_CHIP_ID2, FTS_VENDOR_ID3, fw_file3, sizeof(fw_file3) },
+	{ FTS_CHIP_ID2, FTS_VENDOR_ID4, fw_file4, sizeof(fw_file4) },
 };
 
 struct upgrade_func *upgrade_func_list[] = {
@@ -72,9 +82,9 @@ struct upgrade_func *upgrade_func_list[] = {
 };
 struct fts_upgrade *fwupgrade;
 
-/*
+/*****************************************************************************
  * Static function prototypes
- */
+ *****************************************************************************/
 static u16 fts_pram_ecc_calc_host(u8 *pbuf, u16 length)
 {
 	u16 ecc = 0;
@@ -83,7 +93,7 @@ static u16 fts_pram_ecc_calc_host(u8 *pbuf, u16 length)
 
 	for (i = 0; i < length; i += 2) {
 		ecc ^= ((pbuf[i] << 8) | (pbuf[i + 1]));
-		for (j = 0; j < 16; j ++) {
+		for (j = 0; j < 16; j++) {
 			if (ecc & 0x01)
 				ecc = (u16)((ecc >> 1) ^ AL2_FCS_COEF);
 			else
@@ -94,14 +104,13 @@ static u16 fts_pram_ecc_calc_host(u8 *pbuf, u16 length)
 	return ecc;
 }
 
-/*
+/************************************************************************
  * fts_pram_ecc_cal - Calculate and get pramboot ecc
+ *
  * return pramboot ecc of tp if success, otherwise return error code
- */
-static int fts_pram_ecc_cal_algo(
-	struct i2c_client *client,
-	u32 start_addr,
-	u32 ecc_length)
+ ***********************************************************************/
+static int fts_pram_ecc_cal_algo(struct i2c_client *client, u32 start_addr,
+				 u32 ecc_length)
 {
 	int ret = 0;
 	int i = 0;
@@ -180,10 +189,11 @@ static int fts_pram_ecc_cal(struct i2c_client *client, u32 saddr, u32 len)
 	}
 }
 
-/*
+/************************************************************************
  * fts_pram_write_buf - write pramboot data and calculate ecc
+ *
  * return pramboot ecc of host if success, otherwise return error code
- */
+ ***********************************************************************/
 static int fts_pram_write_buf(struct i2c_client *client, u8 *buf, u32 len)
 {
 	int ret = 0;
@@ -241,7 +251,8 @@ static int fts_pram_write_buf(struct i2c_client *client, u8 *buf, u32 len)
 			}
 		}
 
-		ret = fts_i2c_write(client, packet_buf, packet_len + FTS_CMD_WRITE_LEN);
+		ret = fts_i2c_write(client, packet_buf,
+				    packet_len + FTS_CMD_WRITE_LEN);
 		if (ret < 0) {
 			FTS_ERROR("pramboot write data(%d) fail", i);
 			return ret;
@@ -257,10 +268,11 @@ static int fts_pram_write_buf(struct i2c_client *client, u8 *buf, u32 len)
 	return ecc_in_host;
 }
 
-/*
+/************************************************************************
  * fts_pram_start - remap to start pramboot
+ *
  * return 0 if success, otherwise return error code
- */
+ ***********************************************************************/
 static int fts_pram_start(struct i2c_client *client)
 {
 	u8 cmd = FTS_ROMBOOT_CMD_START_APP;
@@ -278,10 +290,11 @@ static int fts_pram_start(struct i2c_client *client)
 	return 0;
 }
 
-/*
+/************************************************************************
  * fts_pram_write_remap - write pramboot to pram and start pramboot
+ *
  * return 0 if success, otherwise return error code
- */
+ ***********************************************************************/
 static int fts_pram_write_remap(struct i2c_client *client)
 {
 	int ret = 0;
@@ -321,13 +334,13 @@ static int fts_pram_write_remap(struct i2c_client *client)
 	}
 
 	FTS_INFO("pram ecc in tp:%x, host:%x", ecc_in_tp, ecc_in_host);
-	/* pramboot checksum != fw checksum, upgrade fail */
+	/*  pramboot checksum != fw checksum, upgrade fail */
 	if (ecc_in_host != ecc_in_tp) {
 		FTS_ERROR("pramboot ecc check fail");
 		return -EIO;
 	}
 
-	/* start pram */
+	/*start pram*/
 	ret = fts_pram_start(client);
 	if (ret < 0) {
 		FTS_ERROR("pram start fail");
@@ -337,10 +350,11 @@ static int fts_pram_write_remap(struct i2c_client *client)
 	return 0;
 }
 
-/*
+/************************************************************************
  * fts_pram_init - initialize pramboot
+ *
  * return 0 if success, otherwise return error code
- */
+ ***********************************************************************/
 static int fts_pram_init(struct i2c_client *client)
 {
 	int ret = 0;
@@ -370,11 +384,13 @@ static int fts_pram_init(struct i2c_client *client)
 	return 0;
 }
 
-/*
+/************************************************************************
  * Name: fts_pram_write_init
  * Brief: wirte pramboot to pram and initialize
+ * Input:
+ * Output:
  * Return: return 0 if success, otherwise return error code
- */
+ ***********************************************************************/
 int fts_pram_write_init(struct i2c_client *client)
 {
 	int ret = 0;
@@ -382,7 +398,7 @@ int fts_pram_write_init(struct i2c_client *client)
 	enum FW_STATUS status = FTS_RUN_IN_ERROR;
 	struct fts_upgrade *upg = fwupgrade;
 
-	FTS_INFO("pram write and init");
+	FTS_INFO("**********pram write and init**********");
 	if ((NULL == upg) || (NULL == upg->func)) {
 		FTS_ERROR("upgrade/func is null");
 		return -EINVAL;
@@ -398,7 +414,8 @@ int fts_pram_write_init(struct i2c_client *client)
 	ret = fts_fwupg_get_boot_state(client, &status);
 	if (status != FTS_RUN_IN_ROM) {
 		if (FTS_RUN_IN_PRAM == status) {
-			FTS_INFO("tp is in pramboot, need send reset cmd before upgrade");
+			FTS_INFO(
+				"tp is in pramboot, need send reset cmd before upgrade");
 			ret = fts_pram_init(client);
 			if (ret < 0) {
 				FTS_ERROR("pramboot(before) init fail");
@@ -437,11 +454,13 @@ int fts_pram_write_init(struct i2c_client *client)
 	return 0;
 }
 
-/*
+/************************************************************************
  * Name: fts_fwupg_check_fw_valid
  * Brief: check fw in tp is valid or not
+ * Input:
+ * Output:
  * Return: return true if fw is valid, otherwise return false
- */
+ ***********************************************************************/
 bool fts_fwupg_check_fw_valid(struct i2c_client *client)
 {
 	int ret = 0;
@@ -456,11 +475,13 @@ bool fts_fwupg_check_fw_valid(struct i2c_client *client)
 	return true;
 }
 
-/*
+/************************************************************************
  * Name: fts_fwupg_get_boot_state
  * Brief: read boot id(rom/pram/bootloader), confirm boot environment
+ * Input:
+ * Output:
  * Return: return 0 if success, otherwise return error code
- */
+ ***********************************************************************/
 int fts_fwupg_get_boot_state(struct i2c_client *client, enum FW_STATUS *fw_sts)
 {
 	int ret = 0;
@@ -470,7 +491,7 @@ int fts_fwupg_get_boot_state(struct i2c_client *client, enum FW_STATUS *fw_sts)
 	struct ft_chip_t ids = fts_data->ic_info.ids;
 	struct fts_upgrade *upg = fwupgrade;
 
-	FTS_INFO("read boot id");
+	FTS_INFO("**********read boot id**********");
 	if ((NULL == fw_sts) || (NULL == upg) || (NULL == upg->func)) {
 		FTS_ERROR("upgrade/func/fw_sts is null");
 		return -EINVAL;
@@ -515,11 +536,13 @@ int fts_fwupg_get_boot_state(struct i2c_client *client, enum FW_STATUS *fw_sts)
 	return 0;
 }
 
-/*
+/************************************************************************
  * Name: fts_fwupg_check_state
  * Brief: confirm tp run in romboot/pramboot/bootloader
+ * Input:
+ * Output:
  * Return: return true if state is match, otherwise return false
- */
+ ***********************************************************************/
 bool fts_fwupg_check_state(struct i2c_client *client, enum FW_STATUS rstate)
 {
 	int ret = 0;
@@ -528,7 +551,7 @@ bool fts_fwupg_check_state(struct i2c_client *client, enum FW_STATUS rstate)
 
 	for (i = 0; i < FTS_UPGRADE_LOOP; i++) {
 		ret = fts_fwupg_get_boot_state(client, &cstate);
-		/* FTS_DEBUG("fw state=%d, retries=%d", cstate, i); */
+		/*         FTS_DEBUG("fw state=%d, retries=%d", cstate, i); */
 		if (cstate == rstate)
 			return true;
 		msleep(FTS_DELAY_READ_ID);
@@ -537,11 +560,13 @@ bool fts_fwupg_check_state(struct i2c_client *client, enum FW_STATUS rstate)
 	return false;
 }
 
-/*
+/************************************************************************
  * Name: fts_fwupg_reset_in_boot
  * Brief: RST CMD(07), reset to romboot(bootloader) in boot environment
+ * Input:
+ * Output:
  * Return: return 0 if success, otherwise return error code
- */
+ ***********************************************************************/
 int fts_fwupg_reset_in_boot(struct i2c_client *client)
 {
 	int ret = 0;
@@ -558,11 +583,13 @@ int fts_fwupg_reset_in_boot(struct i2c_client *client)
 	return 0;
 }
 
-/*
+/************************************************************************
  * Name: fts_fwupg_reset_to_boot
  * Brief: reset to boot environment
+ * Input:
+ * Output:
  * Return: return 0 if success, otherwise return error code
- */
+ ***********************************************************************/
 int fts_fwupg_reset_to_boot(struct i2c_client *client)
 {
 	int ret = 0;
@@ -586,11 +613,13 @@ int fts_fwupg_reset_to_boot(struct i2c_client *client)
 	return 0;
 }
 
-/*
+/************************************************************************
  * Name: fts_fwupg_reset_to_romboot
  * Brief: reset to romboot, to load pramboot
+ * Input:
+ * Output:
  * Return: return 0 if success, otherwise return error code
- */
+ ***********************************************************************/
 int fts_fwupg_reset_to_romboot(struct i2c_client *client)
 {
 	int ret = 0;
@@ -619,11 +648,13 @@ int fts_fwupg_reset_to_romboot(struct i2c_client *client)
 	return 0;
 }
 
-/*
+/************************************************************************
  * Name: fts_fwupg_enter_into_boot
  * Brief: enter into boot environment, ready for upgrade
+ * Input:
+ * Output:
  * Return: return 0 if success, otherwise return error code
- */
+ ***********************************************************************/
 int fts_fwupg_enter_into_boot(struct i2c_client *client)
 {
 	int ret = 0;
@@ -631,7 +662,7 @@ int fts_fwupg_enter_into_boot(struct i2c_client *client)
 	bool state = false;
 	struct fts_upgrade *upg = fwupgrade;
 
-	FTS_INFO("enter into pramboot/bootloader");
+	FTS_INFO("***********enter into pramboot/bootloader***********");
 	if ((NULL == upg) || (NULL == upg->func)) {
 		FTS_ERROR("upgrade/func is null");
 		return -EINVAL;
@@ -667,19 +698,18 @@ int fts_fwupg_enter_into_boot(struct i2c_client *client)
 	return 0;
 }
 
-/*
+/************************************************************************
  * Name: fts_fwupg_check_flash_status
  * Brief: read status from tp
  * Input: flash_status: correct value from tp
  *        retries: read retry times
  *        retries_delay: retry delay
+ * Output:
  * Return: return true if flash status check pass, otherwise return false
- */
-static bool fts_fwupg_check_flash_status(
-	struct i2c_client *client,
-	u16 flash_status,
-	int retries,
-	int retries_delay)
+ ***********************************************************************/
+static bool fts_fwupg_check_flash_status(struct i2c_client *client,
+					 u16 flash_status, int retries,
+					 int retries_delay)
 {
 	int ret = 0;
 	int i = 0;
@@ -689,7 +719,8 @@ static bool fts_fwupg_check_flash_status(
 
 	for (i = 0; i < retries; i++) {
 		cmd = FTS_CMD_FLASH_STATUS;
-		ret = fts_i2c_read(client, &cmd , 1, val, FTS_CMD_FLASH_STATUS_LEN);
+		ret = fts_i2c_read(client, &cmd, 1, val,
+				   FTS_CMD_FLASH_STATUS_LEN);
 		read_status = (((u16)val[0]) << 8) + val[1];
 		if (flash_status == read_status) {
 			/* FTS_DEBUG("[UPGRADE]flash status ok"); */
@@ -702,21 +733,22 @@ static bool fts_fwupg_check_flash_status(
 	return false;
 }
 
-/*
+/************************************************************************
  * Name: fts_fwupg_erase
  * Brief: erase flash area
  * Input: delay - delay after erase
+ * Output:
  * Return: return 0 if success, otherwise return error code
- */
+ ***********************************************************************/
 int fts_fwupg_erase(struct i2c_client *client, u32 delay)
 {
 	int ret = 0;
 	u8 cmd = 0;
 	bool flag = false;
 
-	FTS_INFO("erase now");
+	FTS_INFO("**********erase now**********");
 
-	/* send to erase flash */
+	/*send to erase flash*/
 	cmd = FTS_CMD_ERASE_APP;
 	ret = fts_i2c_write(client, &cmd, 1);
 	if (ret < 0) {
@@ -726,8 +758,10 @@ int fts_fwupg_erase(struct i2c_client *client, u32 delay)
 	msleep(delay);
 
 	/* read status 0xF0AA: success */
-	flag = fts_fwupg_check_flash_status(client, FTS_CMD_FLASH_STATUS_ERASE_OK,
-					                    FTS_RETRIES_REASE, FTS_RETRIES_DELAY_REASE);
+	flag = fts_fwupg_check_flash_status(client,
+					    FTS_CMD_FLASH_STATUS_ERASE_OK,
+					    FTS_RETRIES_REASE,
+					    FTS_RETRIES_DELAY_REASE);
 	if (!flag) {
 		FTS_ERROR("ecc flash status check fail");
 		return -EIO;
@@ -736,13 +770,14 @@ int fts_fwupg_erase(struct i2c_client *client, u32 delay)
 	return 0;
 }
 
-/*
+/************************************************************************
  * Name: fts_fwupg_ecc_cal
  * Brief: calculate and get ecc from tp
  * Input: saddr - start address need calculate ecc
  *        len - length need calculate ecc
+ * Output:
  * Return: return data ecc of tp if success, otherwise return error code
- */
+ ***********************************************************************/
 int fts_fwupg_ecc_cal(struct i2c_client *client, u32 saddr, u32 len)
 {
 	int ret = 0;
@@ -755,7 +790,7 @@ int fts_fwupg_ecc_cal(struct i2c_client *client, u32 saddr, u32 len)
 	u32 addr = 0;
 	u32 offset = 0;
 
-	FTS_INFO("read out checksum");
+	FTS_INFO("**********read out checksum**********");
 
 	/* check sum init */
 	wbuf[0] = FTS_CMD_ECC_INIT;
@@ -786,7 +821,8 @@ int fts_fwupg_ecc_cal(struct i2c_client *client, u32 saddr, u32 len)
 		wbuf[4] = BYTE_OFF_8(packet_len);
 		wbuf[5] = BYTE_OFF_0(packet_len);
 
-		FTS_DEBUG("ecc calc startaddr:0x%04x, len:%d", addr, packet_len);
+		FTS_DEBUG("ecc calc startaddr:0x%04x, len:%d", addr,
+			  packet_len);
 		ret = fts_i2c_write(client, wbuf, FTS_CMD_ECC_CAL_LEN);
 		if (ret < 0) {
 			FTS_ERROR("ecc calc cmd write fail");
@@ -796,8 +832,10 @@ int fts_fwupg_ecc_cal(struct i2c_client *client, u32 saddr, u32 len)
 		msleep(packet_len / 256);
 
 		/* read status if check sum is finished */
-		ret = fts_fwupg_check_flash_status(client, FTS_CMD_FLASH_STATUS_ECC_OK,
-					                       FTS_RETRIES_ECC_CAL, FTS_RETRIES_DELAY_ECC_CAL);
+		ret = fts_fwupg_check_flash_status(client,
+						   FTS_CMD_FLASH_STATUS_ECC_OK,
+						   FTS_RETRIES_ECC_CAL,
+						   FTS_RETRIES_DELAY_ECC_CAL);
 		if (ret < 0) {
 			FTS_ERROR("ecc flash status read fail");
 			return ret;
@@ -815,21 +853,18 @@ int fts_fwupg_ecc_cal(struct i2c_client *client, u32 saddr, u32 len)
 	return val[0];
 }
 
-/*
+/************************************************************************
  * Name: fts_flash_write_buf
  * Brief: write buf data to flash address
  * Input: saddr - start address data write to flash
  *        buf - data buffer
  *        len - data length
  *        delay - delay after write
+ * Output:
  * Return: return data ecc of host if success, otherwise return error code
- */
-int fts_flash_write_buf(
-	struct i2c_client *client,
-	u32 saddr,
-	u8 *buf,
-	u32 len,
-	u32 delay)
+ ***********************************************************************/
+int fts_flash_write_buf(struct i2c_client *client, u32 saddr, u8 *buf, u32 len,
+			u32 delay)
 {
 	int ret = 0;
 	u32 i = 0;
@@ -846,7 +881,7 @@ int fts_flash_write_buf(
 	u16 read_status = 0;
 	u16 wr_ok = 0;
 
-	FTS_INFO("write data to flash");
+	FTS_INFO("**********write data to flash**********");
 
 	if ((NULL == buf) || (0 == len)) {
 		FTS_ERROR("buf is NULL or len is 0");
@@ -881,7 +916,8 @@ int fts_flash_write_buf(
 			ecc_in_host ^= packet_buf[FTS_CMD_WRITE_LEN + j];
 		}
 
-		ret = fts_i2c_write(client, packet_buf, packet_len + FTS_CMD_WRITE_LEN);
+		ret = fts_i2c_write(client, packet_buf,
+				    packet_len + FTS_CMD_WRITE_LEN);
 		if (ret < 0) {
 			FTS_ERROR("app write fail");
 			return ret;
@@ -892,9 +928,10 @@ int fts_flash_write_buf(
 		wr_ok = FTS_CMD_FLASH_STATUS_WRITE_OK + addr / packet_len;
 		for (j = 0; j < FTS_RETRIES_WRITE; j++) {
 			cmd = FTS_CMD_FLASH_STATUS;
-			ret = fts_i2c_read(client, &cmd , 1, val, FTS_CMD_FLASH_STATUS_LEN);
+			ret = fts_i2c_read(client, &cmd, 1, val,
+					   FTS_CMD_FLASH_STATUS_LEN);
 			read_status = (((u16)val[0]) << 8) + val[1];
-			/* FTS_INFO("%x %x", wr_ok, read_status); */
+			/*  FTS_INFO("%x %x", wr_ok, read_status); */
 			if (wr_ok == read_status) {
 				break;
 			}
@@ -905,7 +942,7 @@ int fts_flash_write_buf(
 	return (int)ecc_in_host;
 }
 
-/*
+/************************************************************************
  * Name: fts_flash_read_buf
  * Brief: read data from flash
  * Input: saddr - start address data write to flash
@@ -913,8 +950,9 @@ int fts_flash_write_buf(
  *        len - read length
  * Output:
  * Return: return 0 if success, otherwise return error code
+ *
  * Warning: can't call this function directly, need call in boot environment
- */
+ ***********************************************************************/
 int fts_flash_read_buf(struct i2c_client *client, u32 saddr, u8 *buf, u32 len)
 {
 	int ret = 0;
@@ -937,7 +975,8 @@ int fts_flash_read_buf(struct i2c_client *client, u32 saddr, u8 *buf, u32 len)
 		packet_number++;
 	}
 	packet_len = FTS_FLASH_PACKET_LENGTH;
-	FTS_INFO("read packet_number:%d, remainder:%d", packet_number, remainder);
+	FTS_INFO("read packet_number:%d, remainder:%d", packet_number,
+		 remainder);
 
 	wbuf[0] = FTS_CMD_READ;
 	for (i = 0; i < packet_number; i++) {
@@ -968,18 +1007,19 @@ int fts_flash_read_buf(struct i2c_client *client, u32 saddr, u8 *buf, u32 len)
 	return 0;
 }
 
-/*
+/************************************************************************
  * Name: fts_flash_read
- * Input: addr - address of flash
- *        len - length of read
- * Output: buf - data read from flash
+ * Brief:
+ * Input:  addr  - address of flash
+ *         len   - length of read
+ * Output: buf   - data read from flash
  * Return: return 0 if success, otherwise return error code
- */
+ ***********************************************************************/
 int fts_flash_read(struct i2c_client *client, u32 addr, u8 *buf, u32 len)
 {
 	int ret = 0;
 
-	FTS_INFO("read flash");
+	FTS_INFO("***********read flash***********");
 
 	if ((NULL == buf) || (0 == len)) {
 		FTS_ERROR("buf is NULL or len is 0");
@@ -1007,12 +1047,13 @@ read_flash_err:
 	return ret;
 }
 
-/*
+/************************************************************************
  * Name: fts_read_file
- * Brief: read file
+ * Brief:  read file
  * Input: file name
+ * Output:
  * Return: return file len if succuss, otherwise return error code
- */
+ ***********************************************************************/
 int fts_read_file(char *file_name, u8 **file_buf)
 {
 	int ret = 0;
@@ -1028,7 +1069,8 @@ int fts_read_file(char *file_name, u8 **file_buf)
 		return -EINVAL;
 	}
 
-	snprintf(file_path, FILE_NAME_LENGTH, "%s%s", FTS_FW_BIN_FILEPATH, file_name);
+	snprintf(file_path, FILE_NAME_LENGTH, "%s%s", FTS_FW_BIN_FILEPATH,
+		 file_name);
 	filp = filp_open(file_path, O_RDONLY, 0);
 	if (IS_ERR(filp)) {
 		FTS_ERROR("open %s file fail", file_path);
@@ -1047,20 +1089,24 @@ int fts_read_file(char *file_name, u8 **file_buf)
 	old_fs = get_fs();
 	set_fs(KERNEL_DS);
 	pos = 0;
-	ret = vfs_read(filp, *file_buf, file_len , &pos);
+	ret = vfs_read(filp, *file_buf, file_len, &pos);
 	if (ret < 0)
 		FTS_ERROR("read file fail");
-	FTS_INFO("file len:%x read len:%x pos:%x", (u32)file_len, ret, (u32)pos);
+	FTS_INFO("file len:%x read len:%x pos:%x", (u32)file_len, ret,
+		 (u32)pos);
 	filp_close(filp, NULL);
 	set_fs(old_fs);
 
 	return ret;
 }
 
-/*
+/************************************************************************
  * Name: fts_upgrade_bin
+ * Brief:
+ * Input:
+ * Output:
  * Return: return 0 if success, otherwise return error code
- */
+ ***********************************************************************/
 int fts_upgrade_bin(struct i2c_client *client, char *fw_name, bool force)
 {
 	int ret = 0;
@@ -1084,7 +1130,8 @@ int fts_upgrade_bin(struct i2c_client *client, char *fw_name, bool force)
 	FTS_INFO("fw bin file len:%x", fw_file_len);
 	if (force) {
 		if (upg->func->force_upgrade) {
-			ret = upg->func->force_upgrade(client, fw_file_buf, fw_file_len);
+			ret = upg->func->force_upgrade(client, fw_file_buf,
+						       fw_file_len);
 		} else {
 			FTS_INFO("force_upgrade function is null, no upgrade");
 			goto err_bin;
@@ -1092,13 +1139,15 @@ int fts_upgrade_bin(struct i2c_client *client, char *fw_name, bool force)
 	} else {
 #if FTS_AUTO_LIC_UPGRADE_EN
 		if (upg->func->lic_upgrade) {
-			ret = upg->func->lic_upgrade(client, fw_file_buf, fw_file_len);
+			ret = upg->func->lic_upgrade(client, fw_file_buf,
+						     fw_file_len);
 		} else {
 			FTS_INFO("lic_upgrade function is null, no upgrade");
 		}
 #endif
 		if (upg->func->upgrade) {
-			ret = upg->func->upgrade(client, fw_file_buf, fw_file_len);
+			ret = upg->func->upgrade(client, fw_file_buf,
+						 fw_file_len);
 		} else {
 			FTS_INFO("upgrade function is null, no upgrade");
 		}
@@ -1160,7 +1209,7 @@ static int fts_lic_get_vid_in_host(u16 *vid)
 		return -EINVAL;
 	}
 
-	licbuf  = upg->lic;
+	licbuf = upg->lic;
 	conf_saddr = upg->func->fwcfgoff;
 	val[0] = licbuf[conf_saddr + FTS_CONIFG_VENDORID_OFF];
 	if (fts_data->ic_info.is_incell)
@@ -1209,7 +1258,7 @@ static int fts_lic_get_ver_in_host(u8 *ver)
 }
 
 /* check if lcd init code need upgrade
- * true-need false-no need
+ * true-need  false-no need
  */
 static bool fts_lic_need_upgrade(struct i2c_client *client)
 {
@@ -1257,12 +1306,13 @@ static bool fts_lic_need_upgrade(struct i2c_client *client)
 	}
 
 	FTS_DEBUG("lcd initial code version in tp:%x, host:%x",
-			  initcode_ver_in_tp, initcode_ver_in_host);
+		  initcode_ver_in_tp, initcode_ver_in_host);
 	if (0xA5 == initcode_ver_in_tp) {
 		FTS_INFO("lcd init code ver is 0xA5, don't upgade init code");
 		return false;
 	} else if (0xFF == initcode_ver_in_tp) {
-		FTS_DEBUG("lcd init code in tp is invalid, need upgrade init code");
+		FTS_DEBUG(
+			"lcd init code in tp is invalid, need upgrade init code");
 		return true;
 	} else if (initcode_ver_in_tp < initcode_ver_in_host)
 		return true;
@@ -1288,15 +1338,19 @@ int fts_lic_upgrade(struct i2c_client *client, struct fts_upgrade *upg)
 	if (hlic_upgrade) {
 		FTS_INFO("lcd initial code need upgrade, upgrade begin...");
 		do {
-			FTS_INFO("lcd initial code upgrade times:%d", upgrade_count);
+			FTS_INFO("lcd initial code upgrade times:%d",
+				 upgrade_count);
 			upgrade_count++;
 
-			ret = upg->func->lic_upgrade(client, upg->lic, upg->lic_length);
+			ret = upg->func->lic_upgrade(client, upg->lic,
+						     upg->lic_length);
 			if (ret < 0) {
 				fts_fwupg_reset_in_boot(client);
 			} else {
 				fts_lic_get_ver_in_tp(client, &ver);
-				FTS_INFO("success upgrade to lcd initcode ver:%02x", ver);
+				FTS_INFO(
+					"success upgrade to lcd initcode ver:%02x",
+					ver);
 				break;
 			}
 		} while (upgrade_count < 2);
@@ -1342,7 +1396,7 @@ static int fts_param_get_ver_in_host(u8 *ver)
 
 	if (upg->fw_length < upg->func->paramcfgveroff) {
 		FTS_ERROR("fw len(%x) < paramcfg ver offset(%x)",
-				  upg->fw_length, upg->func->paramcfgveroff);
+			  upg->fw_length, upg->func->paramcfgveroff);
 		return -EINVAL;
 	}
 
@@ -1357,10 +1411,11 @@ static int fts_param_get_ver_in_host(u8 *ver)
 	return 0;
 }
 
-/*
+/************************************************************************
  * fts_param_need_upgrade - check fw paramcfg need upgrade or not
+ *
  * Return: return true if paramcfg need upgrade
- */
+ ***********************************************************************/
 static bool fts_param_need_upgrade(struct i2c_client *client)
 {
 	int ret = 0;
@@ -1401,7 +1456,8 @@ static bool fts_param_need_upgrade(struct i2c_client *client)
 		return false;
 	}
 
-	FTS_INFO("fw paramcfg version in tp:%x, host:%x", ver_in_tp, ver_in_host);
+	FTS_INFO("fw paramcfg version in tp:%x, host:%x", ver_in_tp,
+		 ver_in_host);
 	if (ver_in_tp < ver_in_host) {
 		return true;
 	}
@@ -1409,10 +1465,11 @@ static bool fts_param_need_upgrade(struct i2c_client *client)
 	return false;
 }
 
-/*
+/************************************************************************
  * fts_fwupg_get_ver_in_tp - read fw ver from tp register
+ *
  * return 0 if success, otherwise return error code
- */
+ ***********************************************************************/
 static int fts_fwupg_get_ver_in_tp(struct i2c_client *client, u8 *ver)
 {
 	int ret = 0;
@@ -1431,10 +1488,11 @@ static int fts_fwupg_get_ver_in_tp(struct i2c_client *client, u8 *ver)
 	return 0;
 }
 
-/*
+/************************************************************************
  * fts_fwupg_get_ver_in_host - read fw ver in host fw image
+ *
  * return 0 if success, otherwise return error code
- */
+ ***********************************************************************/
 static int fts_fwupg_get_ver_in_host(u8 *ver)
 {
 	struct fts_upgrade *upg = fwupgrade;
@@ -1445,8 +1503,8 @@ static int fts_fwupg_get_ver_in_host(u8 *ver)
 	}
 
 	if (upg->fw_length < upg->func->fwveroff) {
-		FTS_ERROR("fw len(%x) < fw ver offset(%x)",
-				  upg->fw_length, upg->func->fwveroff);
+		FTS_ERROR("fw len(%x) < fw ver offset(%x)", upg->fw_length,
+			  upg->func->fwveroff);
 		return -EINVAL;
 	}
 
@@ -1455,10 +1513,11 @@ static int fts_fwupg_get_ver_in_host(u8 *ver)
 	return 0;
 }
 
-/*
+/************************************************************************
  * fts_fwupg_need_upgrade - check fw need upgrade or not
+ *
  * Return: return true if fw need upgrade
- */
+ ***********************************************************************/
 static bool fts_fwupg_need_upgrade(struct i2c_client *client)
 {
 	int ret = 0;
@@ -1480,7 +1539,8 @@ static bool fts_fwupg_need_upgrade(struct i2c_client *client)
 			return false;
 		}
 
-		FTS_INFO("fw version in tp:%x, host:%x", fw_ver_in_tp, fw_ver_in_host);
+		FTS_INFO("fw version in tp:%x, host:%x", fw_ver_in_tp,
+			 fw_ver_in_host);
 		if (fw_ver_in_tp != fw_ver_in_host) {
 			return true;
 		}
@@ -1492,11 +1552,13 @@ static bool fts_fwupg_need_upgrade(struct i2c_client *client)
 	return false;
 }
 
-/*
+/************************************************************************
  * Name: fts_fw_upgrade
  * Brief: fw upgrade main entry
+ * Input:
+ * Output:
  * Return: return 0 if success, otherwise return error code
- */
+ ***********************************************************************/
 int fts_fwupg_upgrade(struct i2c_client *client, struct fts_upgrade *upg)
 {
 	int ret = 0;
@@ -1517,16 +1579,20 @@ int fts_fwupg_upgrade(struct i2c_client *client, struct fts_upgrade *upg)
 		if (upgrade_flag) {
 			FTS_INFO("upgrade fw app(times:%d)", upgrade_count);
 			if (upg->func->upgrade) {
-				ret = upg->func->upgrade(client, upg->fw, upg->fw_length);
+				ret = upg->func->upgrade(client, upg->fw,
+							 upg->fw_length);
 				if (ret < 0) {
 					fts_fwupg_reset_in_boot(client);
 				} else {
 					fts_fwupg_get_ver_in_tp(client, &ver);
-					FTS_INFO("success upgrade to fw version %02x", ver);
+					FTS_INFO(
+						"success upgrade to fw version %02x",
+						ver);
 					break;
 				}
 			} else {
-				FTS_ERROR("upgrade func/upgrade is null, return immediately");
+				FTS_ERROR(
+					"upgrade func/upgrade is null, return immediately");
 				ret = -ENODATA;
 				break;
 			}
@@ -1534,13 +1600,19 @@ int fts_fwupg_upgrade(struct i2c_client *client, struct fts_upgrade *upg)
 			FTS_INFO("fw don't need upgrade");
 			if (upg->func->param_upgrade) {
 				if (fts_param_need_upgrade(client)) {
-					FTS_INFO("upgrade param area(times:%d)", upgrade_count);
-					ret = upg->func->param_upgrade(client, upg->fw, upg->fw_length);
+					FTS_INFO("upgrade param area(times:%d)",
+						 upgrade_count);
+					ret = upg->func->param_upgrade(
+						client, upg->fw,
+						upg->fw_length);
 					if (ret < 0) {
 						fts_fwupg_reset_in_boot(client);
 					} else {
-						fts_param_get_ver_in_tp(client, &ver);
-						FTS_INFO("success upgrade to fw param version %02x", ver);
+						fts_param_get_ver_in_tp(client,
+									&ver);
+						FTS_INFO(
+							"success upgrade to fw param version %02x",
+							ver);
 						break;
 					}
 				} else {
@@ -1557,37 +1629,41 @@ int fts_fwupg_upgrade(struct i2c_client *client, struct fts_upgrade *upg)
 }
 
 #if FTS_AUTO_UPGRADE_EN
-/*
+/************************************************************************
  * fts_fwupg_auto_upgrade - upgrade main entry
- */
+ ***********************************************************************/
 void fts_fwupg_auto_upgrade(struct fts_ts_data *ts_data)
 {
 	int ret = 0;
 	struct i2c_client *client = ts_data->client;
 	struct fts_upgrade *upg = fwupgrade;
 
-	FTS_INFO("FTS enter upgrade");
+	FTS_INFO("********************FTS enter upgrade********************");
 
 	ret = fts_fwupg_upgrade(client, upg);
 	if (ret < 0)
-		FTS_ERROR("tp fw(app/param) upgrade failed");
+		FTS_ERROR(
+			"**********tp fw(app/param) upgrade failed**********");
 	else
-		FTS_INFO("tp fw(app/param) no upgrade/upgrade success");
+		FTS_INFO(
+			"**********tp fw(app/param) no upgrade/upgrade success**********");
 
 #if FTS_AUTO_LIC_UPGRADE_EN
 	ret = fts_lic_upgrade(client, upg);
 	if (ret < 0)
-		FTS_ERROR("lcd init code upgrade failed");
+		FTS_ERROR("**********lcd init code upgrade failed**********");
 	else
-		FTS_INFO("lcd init code no upgrade/upgrade success");
+		FTS_INFO(
+			"**********lcd init code no upgrade/upgrade success**********");
 #endif
 
-	FTS_INFO("FTS exit upgrade");
+	FTS_INFO("********************FTS exit upgrade********************");
 }
 
 /*
  * fts_fwupg_work - fw upgrade work function, handle upgrade
  * @vid - u16 consit of module id and panel id
+ *
  * return 0 if success, otherwise return error code
  */
 int fts_fwupg_get_vendorid(struct fts_ts_data *ts_data, u16 *vid)
@@ -1611,14 +1687,16 @@ int fts_fwupg_get_vendorid(struct fts_ts_data *ts_data, u16 *vid)
 	if (fwvalid) {
 		ret = fts_i2c_read_reg(client, FTS_REG_VENDOR_ID, &vendor_id);
 		if (ts_data->ic_info.is_incell)
-			ret = fts_i2c_read_reg(client, FTS_REG_MODULE_ID, &module_id);
+			ret = fts_i2c_read_reg(client, FTS_REG_MODULE_ID,
+					       &module_id);
 	} else {
-		fwcfg_addr =  upg->func->fwcfgoff;
-		ret = fts_flash_read(client, fwcfg_addr, cfgbuf, FTS_HEADER_LEN);
+		fwcfg_addr = upg->func->fwcfgoff;
+		ret = fts_flash_read(client, fwcfg_addr, cfgbuf,
+				     FTS_HEADER_LEN);
 		vendor_id = cfgbuf[FTS_CONIFG_VENDORID_OFF];
 		if (ts_data->ic_info.is_incell) {
 			if ((cfgbuf[FTS_CONIFG_MODULEID_OFF] +
-				 cfgbuf[FTS_CONIFG_MODULEID_OFF + 1]) == 0xFF)
+			     cfgbuf[FTS_CONIFG_MODULEID_OFF + 1]) == 0xFF)
 				module_id = cfgbuf[FTS_CONIFG_MODULEID_OFF];
 		}
 	}
@@ -1634,7 +1712,9 @@ int fts_fwupg_get_vendorid(struct fts_ts_data *ts_data, u16 *vid)
 
 /*
  * fts_fwupg_get_fw_file - get upgrade fw file in host driver
+ *
  * return 0 if success, otherwise return error code
+ *
  * call it to get upgrade file which include in host driver
  * warning:
  *   1. if more fw files, please modify FTS_GET_VENDOR_ID_NUM&
@@ -1680,8 +1760,8 @@ static int fts_fwupg_get_fw_file(struct fts_ts_data *ts_data)
 		upg->lic_length = fw->fw_len;
 
 		FTS_INFO("upgrade fw file len:%x", upg->fw_length);
-		if ((upg->fw_length < FTS_MIN_LEN)
-			|| (upg->fw_length > FTS_MAX_LEN_FILE)) {
+		if ((upg->fw_length < FTS_MIN_LEN) ||
+		    (upg->fw_length > FTS_MAX_LEN_FILE)) {
 			FTS_ERROR("fw file len(%x) fail", upg->fw_length);
 			return -ENODATA;
 		}
@@ -1709,8 +1789,8 @@ static void fts_fwupg_init_ic_detail(void)
 static void fts_fwupg_work(struct work_struct *work)
 {
 	int ret = 0;
-	struct fts_ts_data *ts_data = container_of(work,
-					              struct fts_ts_data, fwupg_work);
+	struct fts_ts_data *ts_data =
+		container_of(work, struct fts_ts_data, fwupg_work);
 
 	FTS_INFO("fw upgrade work function");
 	ts_data->fw_loading = 1;
@@ -1736,18 +1816,21 @@ static void fts_fwupg_work(struct work_struct *work)
 	ts_data->fw_loading = 0;
 }
 
-/*
+/*****************************************************************************
  *  Name: fts_fwupg_init
  *  Brief: upgrade function initialization
+ *  Input:
+ *  Output:
  *  Return: return 0 if success, otherwise return error code
- */
+ *****************************************************************************/
 int fts_fwupg_init(struct fts_ts_data *ts_data)
 {
 	int i = 0;
 	int j = 0;
 	int ic_stype = ts_data->ic_info.ids.type;
 	struct upgrade_func *func = upgrade_func_list[0];
-	int func_count = sizeof(upgrade_func_list) / sizeof(upgrade_func_list[0]);
+	int func_count =
+		sizeof(upgrade_func_list) / sizeof(upgrade_func_list[0]);
 
 	FTS_INFO("fw upgrade init function");
 
@@ -1761,7 +1844,8 @@ int fts_fwupg_init(struct fts_ts_data *ts_data)
 		return -ENODATA;
 	}
 
-	fwupgrade = (struct fts_upgrade *)kzalloc(sizeof(*fwupgrade), GFP_KERNEL);
+	fwupgrade =
+		(struct fts_upgrade *)kzalloc(sizeof(*fwupgrade), GFP_KERNEL);
 	if (NULL == fwupgrade) {
 		FTS_ERROR("malloc memory for upgrade fail");
 		return -ENOMEM;
@@ -1776,7 +1860,9 @@ int fts_fwupg_init(struct fts_ts_data *ts_data)
 				if (0 == func->ctype[j])
 					break;
 				else if (func->ctype[j] == ic_stype) {
-					FTS_INFO("match upgrade function,type:%x", (int)func->ctype[j]);
+					FTS_INFO(
+						"match upgrade function,type:%x",
+						(int)func->ctype[j]);
 					fwupgrade->func = func;
 				}
 			}
@@ -1794,9 +1880,13 @@ int fts_fwupg_init(struct fts_ts_data *ts_data)
 	return 0;
 }
 
-/*
+/*****************************************************************************
  *  Name: fts_fwupg_exit
- */
+ *  Brief:
+ *  Input:
+ *  Output:
+ *  Return:
+ *****************************************************************************/
 int fts_fwupg_exit(struct fts_ts_data *ts_data)
 {
 	FTS_FUNC_ENTER();
@@ -1808,4 +1898,4 @@ int fts_fwupg_exit(struct fts_ts_data *ts_data)
 	return 0;
 }
 
-#endif  /* #if FTS_AUTO_UPGRADE_EN */
+#endif /* #if FTS_AUTO_UPGRADE_EN */
