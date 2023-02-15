@@ -135,7 +135,7 @@ static struct kernfs_node *soc_symlink = NULL;
 static int hw_reset(struct fpc1020_data *fpc1020);
 #endif
 
-static int vreg_setup(struct fpc1020_data *fpc1020, const char *name,
+static inline int vreg_setup(struct fpc1020_data *fpc1020, const char *name,
 	bool enable)
 {
 	size_t i;
@@ -256,7 +256,7 @@ static DEVICE_ATTR(fingerdown_wait, S_IWUSR, NULL, fingerdown_wait_set);
  * @see pctl_names
  * @see fpc1020_probe
  */
-static int select_pin_ctl(struct fpc1020_data *fpc1020, const char *name)
+static inline int select_pin_ctl(struct fpc1020_data *fpc1020, const char *name)
 {
 	size_t i;
 	int rc;
@@ -323,7 +323,7 @@ static ssize_t regulator_enable_set(struct device *dev,
 }
 static DEVICE_ATTR(regulator_enable, 0200, NULL, regulator_enable_set);
 
-static int hw_reset(struct fpc1020_data *fpc1020)
+static inline int hw_reset(struct fpc1020_data *fpc1020)
 {
 	int irq_gpio;
 	struct device *dev = fpc1020->dev;
@@ -401,7 +401,7 @@ static void config_irq(struct fpc1020_data *fpc1020, bool enabled)
  * @note This function will not send any commands to the sensor it will only
  *       control it "electrically".
  */
-static int device_prepare(struct fpc1020_data *fpc1020, bool enable)
+static inline int device_prepare(struct fpc1020_data *fpc1020, bool enable)
 {
 	int rc;
 #ifdef CONFIG_MACH_XIAOMI_SDM660
@@ -789,7 +789,7 @@ static void notification_work(struct work_struct *work)
 	mdss_prim_panel_fb_unblank(FP_UNLOCK_REJECTION_TIMEOUT);
  }
 
-static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
+static inline irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 {
 	struct fpc1020_data *fpc1020 = handle;
 
@@ -814,7 +814,7 @@ static irqreturn_t fpc1020_irq_handler(int irq, void *handle)
 	return IRQ_HANDLED;
 }
 
-static int fpc1020_request_named_gpio(struct fpc1020_data *fpc1020,
+static inline int fpc1020_request_named_gpio(struct fpc1020_data *fpc1020,
 	const char *label, int *gpio)
 {
 	struct device *dev = fpc1020->dev;
@@ -837,7 +837,7 @@ static int fpc1020_request_named_gpio(struct fpc1020_data *fpc1020,
 	return 0;
 }
 
-static int fpc_fb_notif_callback(struct notifier_block *nb,
+static inline int fpc_fb_notif_callback(struct notifier_block *nb,
 		unsigned long val, void *data)
 {
 	struct fpc1020_data *fpc1020 = container_of(nb, struct fpc1020_data,
@@ -973,7 +973,7 @@ static const struct input_device_id ids[] = {
 };
 #endif
 
-static int fpc1020_probe(struct platform_device *pdev)
+static inline int fpc1020_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	int rc = 0;
@@ -1116,7 +1116,7 @@ exit:
 	return rc;
 }
 
-static int fpc1020_remove(struct platform_device *pdev)
+static inline int fpc1020_remove(struct platform_device *pdev)
 {
 	struct fpc1020_data *fpc1020 = platform_get_drvdata(pdev);
 
