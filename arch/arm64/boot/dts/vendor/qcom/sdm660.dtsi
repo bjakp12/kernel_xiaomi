@@ -822,7 +822,7 @@
 			< 588000000 5>,  /* NOM    */
 			< 647000000 6>,  /* NOM_L1 */
 			< 700000000 7>,  /* TURBO */
-			< 750000000 7>;  /* TURBO  */
+			< 1260000000 8>;  /* TURBO  */
 		#clock-cells = <1>;
 		#reset-cells = <1>;
 	};
@@ -855,19 +855,19 @@
 
 	generic_bw_opp_table: generic-bw-opp-table {
 		compatible = "operating-points-v2";
-		BW_OPP_ENTRY( 100, 4); /*  381 MB/s */
-		BW_OPP_ENTRY( 150, 4); /*  572 MB/s */
-		BW_OPP_ENTRY( 200, 4); /*  762 MB/s */
-		BW_OPP_ENTRY( 300, 4); /* 1144 MB/s */
-		BW_OPP_ENTRY( 412, 4); /* 1571 MB/s */
-		BW_OPP_ENTRY( 547, 4); /* 2086 MB/s */
-		BW_OPP_ENTRY( 681, 4); /* 2597 MB/s */
-		BW_OPP_ENTRY( 768, 4); /* 2929 MB/s */
-		BW_OPP_ENTRY(1017, 4); /* 3879 MB/s */
-		BW_OPP_ENTRY(1296, 4); /* 4943 MB/s */
-		BW_OPP_ENTRY(1353, 4); /* 5163 MB/s */
-		BW_OPP_ENTRY(1555, 4); /* 5931 MB/s */
-		BW_OPP_ENTRY(1804, 4); /* 6881 MB/s */
+		BW_OPP_ENTRY( 100, 8); /*  762 MB/s */
+		BW_OPP_ENTRY( 150, 8); /* 1144 MB/s */
+		BW_OPP_ENTRY( 200, 8); /* 1525 MB/s */
+		BW_OPP_ENTRY( 300, 8); /* 2288 MB/s */
+		BW_OPP_ENTRY( 412, 8); /* 3142 MB/s */
+		BW_OPP_ENTRY( 547, 8); /* 4173 MB/s */
+		BW_OPP_ENTRY( 681, 8); /* 5194 MB/s */
+		BW_OPP_ENTRY( 768, 8); /* 5859 MB/s */
+		BW_OPP_ENTRY(1017, 8); /* 7759 MB/s */
+		BW_OPP_ENTRY(1296, 8); /* 9886 MB/s */
+		BW_OPP_ENTRY(1353, 8); /*10326 MB/s */
+		BW_OPP_ENTRY(1555, 8); /*11863 MB/s */
+		BW_OPP_ENTRY(1804, 8); /*13763 MB/s */
 	};
 
 	 cpu_cpu_ddr_bw: qcom,cpu-cpu-ddr-bw {
@@ -937,9 +937,9 @@
 			qcom,cachemiss-ev = <0x17>;
 			qcom,stall-cycle-ev = <0xE7>;
 			qcom,core-dev-table =
-				< 902400 MHZ_TO_MBPS(200, 4) >,
-				< 1401600 MHZ_TO_MBPS(547, 4) >,
-				< 1881600 MHZ_TO_MBPS(1017, 4) >;
+				< 902400 MHZ_TO_MBPS(547, 8) >,
+				< 1401600 MHZ_TO_MBPS(768, 8) >,
+				< 2515200 MHZ_TO_MBPS(1017, 8) >;
 		};
 
 		cpu0_computemon: qcom,cpu0-computemon {
@@ -947,9 +947,9 @@
 			qcom,cpulist = <&CPU0 &CPU1 &CPU2 &CPU3>;
 			qcom,target-dev = <&cpu0_cpu_ddr_latfloor>;
 			qcom,core-dev-table =
-				< 633600 MHZ_TO_MBPS(200, 4) >,
-				< 1401600 MHZ_TO_MBPS(412, 4) >,
-				< 1881600 MHZ_TO_MBPS(768, 4) >;
+				< 902400 MHZ_TO_MBPS(547, 8) >,
+				< 1401600 MHZ_TO_MBPS(768, 8) >,
+				< 2515200 MHZ_TO_MBPS(1017, 8) >;
 		};
 	};
 
@@ -964,10 +964,11 @@
 			qcom,cachemiss-ev = <0x17>;
 			qcom,stall-cycle-ev = <0x24>;
 			qcom,core-dev-table =
-				< 1113600 MHZ_TO_MBPS(200, 4) >,
-				< 1401600 MHZ_TO_MBPS(1017, 4) >,
-				< 2150400 MHZ_TO_MBPS(1555, 4) >,
-				< 2457600 MHZ_TO_MBPS(1804, 4) >;
+				< 1113600 MHZ_TO_MBPS(547, 8) >,
+				< 1401600 MHZ_TO_MBPS(1017, 8) >,
+				< 1747200 MHZ_TO_MBPS(1555, 8) >,
+				< 2150400 MHZ_TO_MBPS(1804, 8) >,
+				< 2515200 MHZ_TO_MBPS(1804, 8) >;
 		};
 
 		cpu4_computemon: qcom,cpu4-computemon {
@@ -975,11 +976,11 @@
 			qcom,cpulist = <&CPU4 &CPU5 &CPU6 &CPU7>;
 			qcom,target-dev = <&cpu4_cpu_ddr_latfloor>;
 			qcom,core-dev-table =
-				< 1113600 MHZ_TO_MBPS(200, 4) >,
-				< 1401600 MHZ_TO_MBPS(547, 4) >,
-				< 1747200 MHZ_TO_MBPS(768, 4) >,
-				< 2150400 MHZ_TO_MBPS(1017, 4) >,
-				< 2457600 MHZ_TO_MBPS(1804, 4) >;
+				< 1113600 MHZ_TO_MBPS(547, 8) >,
+				< 1401600 MHZ_TO_MBPS(768, 8) >,
+				< 1747200 MHZ_TO_MBPS(1017, 8) >,
+				< 2150400 MHZ_TO_MBPS(1804, 8) >,
+				< 2515200 MHZ_TO_MBPS(1804, 8) >;
 		};
 	};
 
@@ -1008,7 +1009,7 @@
 			<  1401600000 0x04040049 0x073a003a 0x2 5 >,
 			<  1536000000 0x04040050 0x08400040 0x2 6 >,
 			<  1747200000 0x0404005b 0x09480048 0x2 7 >,
-			<  1843200000 0x04040060 0x094c004c 0x3 8 >;
+			<  2515200000 0x04040083 0x0d680068 0x3 8 >;
 
 		qcom,pwrcl-speedbin1-v0 =
 			<   300000000 0x0004000f 0x01200020 0x1 1 >,
@@ -1046,7 +1047,7 @@
 			<  1747200000 0x0404005b 0x09480048 0x2 4 >,
 			<  1958400000 0x04040066 0x0a510051 0x2 5 >,
 			<  2150400000 0x04040070 0x0b590059 0x2 6 >,
-			<  2457600000 0x04040080 0x0c660066 0x3 7 >;
+			<  2515200000 0x04040083 0x0d680068 0x3 7 >;
 
 		qcom,perfcl-speedbin1-v0 =
 			<   300000000 0x0004000f 0x01200020 0x1 1 >,
@@ -1118,6 +1119,7 @@
 		qcom,governor-per-policy;
 
 		qcom,cpufreq-table-0 =
+			<  300000 >,
 			<  633600 >,
 			<  902400 >,
 			< 1113600 >,
@@ -1125,9 +1127,10 @@
 			< 1536000 >,
 			< 1612800 >,
 			< 1747200 >,
-			< 1843200 >;
+			< 2515200 >;
 
 		qcom,cpufreq-table-4 =
+			<  300000 >,
 			< 1113600 >,
 			< 1401600 >,
 			< 1747200 >,
@@ -1135,7 +1138,7 @@
 			< 1958400 >,
 			< 2150400 >,
 			< 2208000 >,
-			< 2457600 >;
+			< 2515200 >;
 	};
 
 	sdhc_1: sdhci@c0c4000 {
