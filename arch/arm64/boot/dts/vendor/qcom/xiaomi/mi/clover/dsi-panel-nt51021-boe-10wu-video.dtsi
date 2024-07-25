@@ -1,5 +1,4 @@
 /* Copyright (c) 2017, The Linux Foundation. All rights reserved.
- * Copyright (C) 2018 XiaoMi, Inc.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -17,7 +16,9 @@
 		qcom,mdss-dsi-panel-controller = <&mdss_dsi0>;
 		qcom,mdss-dsi-panel-type = "dsi_video_mode";
 		qcom,mdss-dsi-panel-destination = "display_1";
-		qcom,mdss-dsi-panel-framerate = <60>;
+		qcom,mdss-dsi-panel-framerate = <75>;
+		qcom,mdss-dsi-max-refresh-rate = <75>;
+		qcom,mdss-dsi-min-refresh-rate = <75>;
 		qcom,mdss-dsi-virtual-channel-id = <0>;
 		qcom,mdss-dsi-stream = <0>;
 		qcom,mdss-dsi-panel-width = <1200>;
@@ -36,7 +37,6 @@
 		qcom,mdss-dsi-bpp = <24>;
 		qcom,mdss-dsi-underflow-color = <0xff>;
 		qcom,mdss-dsi-border-color = <0>;
-		qcom,mdss-dsi-h-sync-pulse = <0>;
 		qcom,mdss-dsi-traffic-mode = "burst_mode";
 		qcom,mdss-dsi-bllp-eof-power-mode;
 		qcom,mdss-dsi-bllp-power-mode;
@@ -49,7 +49,8 @@
 			25 1F 09 0A 06 03 04 a0
 			25 1F 09 0A 06 03 04 a0
 			25 1F 09 0A 06 03 04 a0
-			25 1E 08 0A 06 03 04 a0];
+			25 1E 08 0A 06 03 04 a0
+		];
 		qcom,mdss-dsi-t-clk-post = <0x0e>;
 		qcom,mdss-dsi-t-clk-pre = <0x34>;
 		qcom,mdss-dsi-bl-min-level = <1>;
@@ -57,8 +58,6 @@
 		qcom,mdss-brightness-max-level = <4095>;
 		qcom,mdss-dsi-dma-trigger = "trigger_sw";
 		qcom,mdss-dsi-mdp-trigger = "none";
-		qcom,ulps-enabled;
-		qcom,panel-allow-phy-poweroff;
 		qcom,mdss-dsi-on-command = [
 			29 01 00 00 01 00 02 8F A5
 			29 01 00 00 14 00 02 01 00
@@ -305,29 +304,15 @@
 			29 01 00 00 00 00 02 9F FF
 			05 01 00 00 05 00 02 11 00
 			29 01 00 00 01 00 02 8F 00
-			];
+		];
 		qcom,mdss-dsi-off-command = [
 			29 01 00 00 14 00 02 8F A5
 			05 01 00 00 82 00 02 28 00
 			05 01 00 00 46 00 02 10 00
 			29 01 00 00 04 00 02 8F 00
-			];
-		qcom,mdss-dsi-CABC_on-command = [
-			23 00 00 00 01 00 02 8F A5
-			23 00 00 00 00 00 02 83 BB
-			23 00 00 00 00 00 02 84 22
-			23 00 00 00 00 00 02 90 40
-			23 01 00 00 01 00 02 8F 00];
-		qcom,mdss-dsi-CABC_off-command = [
-			23 00 00 00 01 00 02 8F A5
-			23 00 00 00 00 00 02 83 BB
-			23 00 00 00 00 00 02 84 22
-			23 00 00 00 00 00 02 90 C0
-			23 01 00 00 01 00 02 8F 00];
+		];
 		qcom,mdss-dsi-on-command-state = "dsi_lp_mode";
 		qcom,mdss-dsi-off-command-state = "dsi_lp_mode";
-		qcom,mdss-dsi-CABC_on-command-state = "dsi_lp_mode";
-		qcom,mdss-dsi-CABC_off-command-state = "dsi_lp_mode";
 		qcom,mdss-dsi-bl-pmic-control-type = "bl_ctrl_i2c";
 		qcom,platform-bklight-en-gpio = <&tlmm 72 0>; /* BL Enable */
 		qcom,mdss-dsi-reset-sequence = <1 10>;
@@ -337,7 +322,27 @@
 		qcom,mdss-dsi-force-clock-lane-hs;
 		qcom,mdss-pan-physical-width-dimension = <135>;
 		qcom,mdss-pan-physical-height-dimension = <216>;
-
+		/* Enable ULPS during idle PC */
+		qcom,ulps-enabled;
+		/* Enable phy-poweroff */
+		qcom,panel-allow-phy-poweroff;
+		/* Add some extra features to xiaomi panels */
+		qcom,mdss-dsi-pan-enable-dynamic-bitclk;
+		qcom,mdss-dsi-dynamic-bitclk_freq = <798240576 801594528 804948480 808302432 811656384>;
+		/* Add dynamic bitclk and dynamic fps support */
+		qcom,mdss-dsi-pan-enable-dynamic-fps;
+		qcom,mdss-dsi-pan-fps-update = "dfps_immediate_porch_mode_vfp";
+		qcom,panel-ack-disabled;
+		qcom,partial-update-enabled = "single_roi";
+		qcom,panel-roi-alignment = <540 270 270 270 1080 270>;
+		qcom,mdss-dsi-te-pin-select = <1>;
+		qcom,mdss-dsi-te-dcs-command = <1>;
+		qcom,mdss-dsi-te-check-enable;
+		qcom,mdss-dsi-te-using-te-pin;
+		qcom,mdss-tear-check-sync-init-val = <2280>;
+		qcom,mdss-tear-check-start-pos = <2280>;
+		qcom,mdss-tear-check-rd-ptr-trigger-intr = <2281>;
+		/* Add cmd for livedisplay CABC */
 		cm,mdss-livedisplay-command-state = "dsi_lp_mode";
 		cm,mdss-livedisplay-cabc-ui-cmd = [
                         23 00 00 00 01 00 02 8F A5
