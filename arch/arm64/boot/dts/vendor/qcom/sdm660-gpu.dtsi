@@ -130,7 +130,7 @@
 
 			qcom,gpu-cx-ipeak@0 {
 				qcom,gpu-cx-ipeak = <&cx_ipeak_lm 1>;
-				qcom,gpu-cx-ipeak-freq = <1260000000>;
+				qcom,gpu-cx-ipeak-freq = <1560000000>;
 			};
 		};
 
@@ -178,7 +178,7 @@
 				/* TURBO */
 				qcom,gpu-pwrlevel@0 {
 					reg = <0>;
-					qcom,gpu-freq = <1260000000>;
+					qcom,gpu-freq = <1560000000>;
 					qcom,bus-freq = <13>;
 					qcom,bus-min = <13>;
 					qcom,bus-max = <13>;
@@ -268,7 +268,7 @@
 				/* TURBO */
 				qcom,gpu-pwrlevel@0 {
 					reg = <0>;
-					qcom,gpu-freq = <1260000000>;
+					qcom,gpu-freq = <1560000000>;
 					qcom,bus-freq = <13>;
 					qcom,bus-min = <13>;
 					qcom,bus-max = <13>;
